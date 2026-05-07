@@ -7,7 +7,7 @@ _ON_LOCALE_CHANGED_CALLBACKS: List[Callable[[], None]] = []
 
 _TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "zh_CN": {
-        "app_name": "包豆电脑",
+        "app_name": "同窗",
         "app_desc": "AI 桌面自动化助手",
         "app_desc_console": "AI 桌面自动化助手 · 控制台",
         "input_placeholder": "请输入任务，回车执行",
@@ -78,7 +78,7 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "section_mouse": "鼠标配置",
         "section_tts": "语音播报配置",
         "section_language": "语言",
-        "settings_window_title": "包豆电脑设置",
+        "settings_window_title": "同窗设置",
         "sidebar_general": "通用",
         "sidebar_floating": "悬浮球",
         "sidebar_voice": "语音交互",
@@ -247,7 +247,7 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "about_version_label": "当前版本",
         "about_version_desc": "版本号与当前安装包保持一致。",
         "about_product_name_label": "产品",
-        "about_product_name_desc": "包豆电脑桌面助手设置与运行控制台。",
+        "about_product_name_desc": "同窗桌面助手设置与运行控制台。",
         "language_page_title": "界面语言",
         "language_page_desc": "切换设置窗口与应用文本的显示语言，切换后立即生效并写入现有配置。",
         "language_option_zh": "中文",
@@ -342,7 +342,7 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "completed_arrow": "完成 ->",
     },
     "en_US": {
-        "app_name": "Baodou AI",
+        "app_name": "CoView",
         "app_desc": "AI Desktop Automation Assistant",
         "app_desc_console": "AI Desktop Automation Assistant · Console",
         "input_placeholder": "Enter task, press Enter to execute",
@@ -413,7 +413,7 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "section_mouse": "Mouse Configuration",
         "section_tts": "TTS Configuration",
         "section_language": "Language",
-        "settings_window_title": "Baodou AI Settings",
+        "settings_window_title": "CoView Settings",
         "sidebar_general": "General",
         "sidebar_floating": "Floating Ball",
         "sidebar_voice": "Voice",
@@ -582,7 +582,7 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "about_version_label": "Current Version",
         "about_version_desc": "Matches the version of the currently installed build.",
         "about_product_name_label": "Product",
-        "about_product_name_desc": "Baodou AI desktop assistant settings and runtime console.",
+        "about_product_name_desc": "CoView desktop assistant settings and runtime console.",
         "language_page_title": "Interface Language",
         "language_page_desc": "Switch the settings window and app text language. Changes apply immediately and are persisted in the current config.",
         "language_option_zh": "中文",

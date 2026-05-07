@@ -684,7 +684,7 @@ class FloatingController:
         self._ensure_background_activity().poll_background_jobs()
 
     def _start_ui_perf_probe(self) -> None:
-        if str(os.environ.get("BAODOU_FLOATING_PERF", "")).strip() != "1":
+        if str(os.environ.get("COVIEW_FLOATING_PERF", "")).strip() != "1":
             return
         if self._ui_perf_timer is not None:
             return

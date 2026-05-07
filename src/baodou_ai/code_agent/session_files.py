@@ -8,7 +8,7 @@ from pathlib import Path
 
 def resolve_session_root(session_root: str | Path | None = None) -> Path:
     """返回后台 Code Agent 会话目录。"""
-    root = Path(session_root).expanduser() if session_root is not None else (Path.home() / ".baodou" / "code_agent_sessions")
+    root = Path(session_root).expanduser() if session_root is not None else (Path.home() / ".coview" / "code_agent_sessions")
     return root.resolve()
 
 

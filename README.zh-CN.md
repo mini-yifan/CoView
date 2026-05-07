@@ -1,15 +1,15 @@
-<h1 align="center">包豆电脑 2.0 - 基于视觉模型的桌面 AI 助手</h1>
+<h1 align="center">同窗 2.0 - 基于视觉模型的桌面 AI 助手</h1>
 
 <p align="center">
   <a href="README.md">English README</a>
 </p>
 
 <p align="center">
-  <img src="image_capture_20260425_140311.png" alt="包豆电脑桌面助手预览图" width="960">
+  <img src="image_capture_20260425_140311.png" alt="同窗桌面助手预览图" width="960">
 </p>
 
 <p align="center">
-  <a href="https://github.com/mini-yifan/baodou_ai2.0_mac"><img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-0A84FF?style=for-the-badge"></a>
+  <a href="https://github.com/mini-yifan/CoView"><img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-0A84FF?style=for-the-badge"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-111827?style=for-the-badge">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-22C55E?style=for-the-badge"></a>
@@ -21,9 +21,9 @@
 
 ---
 
-## 为什么是包豆电脑
+## 为什么是同窗
 
-包豆电脑是一个基于视觉模型控制循环的本地桌面自动化 Agent：
+同窗是一个基于视觉模型控制循环的本地桌面自动化 Agent：
 
 ```text
 观察屏幕 -> 理解任务 -> 执行一步操作 -> 再次观察
@@ -44,7 +44,7 @@
 
 ## 当前状态
 
-包豆电脑 2.0 仍处于 beta 阶段。核心架构已经拆分为 GUI、平台适配、语音、Code Agent、模型调用与 runner 模块，但模型适配、界面体验和打包发布仍在快速迭代中。
+同窗 2.0 仍处于 beta 阶段。核心架构已经拆分为 GUI、平台适配、语音、Code Agent、模型调用与 runner 模块，但模型适配、界面体验和打包发布仍在快速迭代中。
 
 ## 快速开始
 
@@ -58,8 +58,8 @@
 
 | macOS / Linux | Windows PowerShell |
 | --- | --- |
-| `git clone https://github.com/mini-yifan/baodou_ai2.0_mac.git` | `git clone https://github.com/mini-yifan/baodou_ai2.0_mac.git` |
-| `cd baodou_ai2.0_mac` | `cd baodou_ai2.0_mac` |
+| `git clone https://github.com/mini-yifan/CoView.git` | `git clone https://github.com/mini-yifan/CoView.git` |
+| `cd CoView` | `cd CoView` |
 
 ### 2. 创建并激活虚拟环境
 
@@ -89,7 +89,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ### 4. 配置模型
 
-包豆电脑默认读取仓库根目录的 `config.json`，并与 `src/baodou_ai/core/config.py` 里的默认配置合并。
+同窗默认读取仓库根目录的 `config.json`，并与 `src/baodou_ai/core/config.py` 里的默认配置合并。
 
 最先需要配置的是：
 
@@ -113,10 +113,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 | 目标 | macOS | Windows |
 | --- | --- | --- |
-| 启动悬浮 GUI | `python3 -m baodou_ai` | `py -m baodou_ai` |
-| 使用安装后的命令 | `baodou-ai` | `baodou-ai` |
-| 执行一个 CLI 任务 | `python3 -m baodou_ai.cli "打开浏览器并搜索上海天气"` | `py -m baodou_ai.cli "打开记事本并输入 Hello"` |
-| 限制最大执行步数 | `python3 -m baodou_ai.cli "总结当前页面" --max-iterations 20` | `py -m baodou_ai.cli "打开计算器" --max-iterations 20` |
+| 启动悬浮 GUI | `coview` | `coview` |
+| 执行一个 CLI 任务 | `coview-cli "打开浏览器并搜索上海天气"` | `coview-cli "打开记事本并输入 Hello"` |
+| 限制最大执行步数 | `coview-cli "总结当前页面" --max-iterations 20` | `coview-cli "打开计算器" --max-iterations 20` |
 | 停止 CLI 任务 | `Ctrl+C` | `Ctrl+C` |
 
 ## macOS 与 Windows 命令差异
@@ -135,7 +134,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ## 60 秒上手交互
 
-1. macOS 运行 `python3 -m baodou_ai`，Windows 运行 `py -m baodou_ai`。
+1. macOS 运行 `coview`，Windows 运行 `coview`。
 2. 打开悬浮助手的设置窗口，填入模型 API Key、Base URL 和模型名称。
 3. 点击悬浮输入框，输入任务，按 Enter 执行。
 4. 助手会持续汇报执行过程：观察屏幕、选择操作、执行一步、再次观察，直到任务完成。
@@ -195,25 +194,25 @@ py scripts\download_wake_word_model.py --url "https://your-cdn.example.com/model
 macOS / Linux:
 
 ```bash
-python3 -m baodou_ai.cli "打开浏览器并搜索包豆电脑" --api-key YOUR_API_KEY
-python3 -m baodou_ai.cli "关闭当前窗口" --max-iterations 10
-python3 -m baodou_ai.cli "读取当前页面并总结" --base-url https://api.example.com
+coview-cli "打开浏览器并搜索同窗" --api-key YOUR_API_KEY
+coview-cli "关闭当前窗口" --max-iterations 10
+coview-cli "读取当前页面并总结" --base-url https://api.example.com
 ```
 
 Windows:
 
 ```powershell
-py -m baodou_ai.cli "打开记事本并输入 Hello" --api-key YOUR_API_KEY
-py -m baodou_ai.cli "关闭当前窗口" --max-iterations 10
-py -m baodou_ai.cli "读取当前页面并总结" --base-url https://api.example.com
+coview-cli "打开记事本并输入 Hello" --api-key YOUR_API_KEY
+coview-cli "关闭当前窗口" --max-iterations 10
+coview-cli "读取当前页面并总结" --base-url https://api.example.com
 ```
 
 ## Python API
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
-ai = BaodouAI(
+ai = CoViewAI(
     api_key="YOUR_API_KEY",
     base_url="https://ark.cn-beijing.volces.com/api/v3",
     model_name="doubao-seed-1-6-vision-250815",
@@ -230,9 +229,9 @@ print(result)
 带进度回调：
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
-ai = BaodouAI(api_key="YOUR_API_KEY")
+ai = CoViewAI(api_key="YOUR_API_KEY")
 
 def on_iteration(index, info):
     print(f"[第 {index + 1} 步] {info.get('thinking', '')}")
@@ -246,7 +245,7 @@ result = ai.execute(
 ## 项目结构
 
 ```text
-baodou_ai2.0_mac/
+CoView/
 ├── src/baodou_ai/
 │   ├── __main__.py              # 悬浮 GUI 入口
 │   ├── api.py                   # 可嵌入的 Python API
@@ -314,7 +313,7 @@ baodou_ai2.0_mac/
 
 ## 安全提示
 
-包豆电脑会真实控制桌面输入。刚开始请从低风险任务试起，测试时尽量关闭敏感应用，并观察前几次执行。macOS 上只授予你理解的系统权限。Windows 上除非确实需要控制管理员权限窗口，否则不要用管理员身份运行助手。
+同窗会真实控制桌面输入。刚开始请从低风险任务试起，测试时尽量关闭敏感应用，并观察前几次执行。macOS 上只授予你理解的系统权限。Windows 上除非确实需要控制管理员权限窗口，否则不要用管理员身份运行助手。
 
 ## 参与贡献
 
@@ -330,4 +329,4 @@ baodou_ai2.0_mac/
 
 ## License
 
-包豆电脑基于 [MIT License](LICENSE) 开源。
+同窗基于 [MIT License](LICENSE) 开源。

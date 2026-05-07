@@ -208,13 +208,13 @@ class TestConfig:
         config_path = tmp_path / "config.json"
         config = Config.create_isolated(str(config_path))
 
-        config.set_wake_word_phrase("zh", "你好包豆")
-        config.set_wake_word_phrase("en", "Hey Baodou")
+        config.set_wake_word_phrase("zh", "你好同窗")
+        config.set_wake_word_phrase("en", "Hey CoView")
         assert config.save() is True
 
         reloaded = Config.create_isolated(str(config_path))
-        assert reloaded.get_wake_word_phrase("zh") == "你好包豆"
-        assert reloaded.get_wake_word_phrase("en") == "Hey Baodou"
+        assert reloaded.get_wake_word_phrase("zh") == "你好同窗"
+        assert reloaded.get_wake_word_phrase("en") == "Hey CoView"
 
         reloaded.set_wake_word_phrase("zh", "")
         assert reloaded.get_wake_word_phrase("zh") == "你好彤彤"

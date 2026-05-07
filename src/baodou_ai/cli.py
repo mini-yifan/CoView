@@ -1,28 +1,28 @@
 """
-包豆电脑 CLI 命令行工具
+CoView 同窗 CLI 命令行工具
 
 通过终端直接执行自动化任务。
 
 使用方法:
-    python -m baodou_ai.cli "打开浏览器" --api-key YOUR_KEY
-    python -m baodou_ai.cli "打开记事本" --api-key YOUR_KEY --max-iterations 10
+    coview-cli "打开浏览器" --api-key YOUR_KEY
+    coview-cli "打开记事本" --api-key YOUR_KEY --max-iterations 10
 """
 
 import argparse
 import sys
 
-from baodou_ai.api import BaodouAI
+from baodou_ai.api import CoViewAI
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="包豆电脑 - AI智能控制系统命令行工具",
+        description="CoView 同窗 - AI 智能控制系统命令行工具",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
-  python -m baodou_ai.cli "打开浏览器" --api-key YOUR_KEY
-  python -m baodou_ai.cli "打开记事本并输入Hello" --api-key YOUR_KEY --max-iterations 20
-  python -m baodou_ai.cli "关闭窗口" --api-key YOUR_KEY --base-url https://api.example.com
+  coview-cli "打开浏览器" --api-key YOUR_KEY
+  coview-cli "打开记事本并输入Hello" --api-key YOUR_KEY --max-iterations 20
+  coview-cli "关闭窗口" --api-key YOUR_KEY --base-url https://api.example.com
         """,
     )
 
@@ -64,7 +64,7 @@ def main():
         "--version",
         "-v",
         action="version",
-        version="包豆电脑 CLI v2.0.0",
+        version="CoView CLI v2.0.0",
         help="显示版本信息",
     )
 
@@ -72,12 +72,12 @@ def main():
 
     try:
         print("=" * 60)
-        print("包豆电脑 - AI智能控制系统")
+        print("CoView 同窗 - AI 智能控制系统")
         print("=" * 60)
         print(f"任务: {args.task}")
         print()
 
-        ai = BaodouAI(
+        ai = CoViewAI(
             api_key=args.api_key,
             base_url=args.base_url,
             model_name=args.model_name,

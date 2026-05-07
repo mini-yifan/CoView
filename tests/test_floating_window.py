@@ -1625,7 +1625,7 @@ def test_console_copies_floating_ball_asset_and_notifies_config_change(monkeypat
 
     window._choose_floating_ball_asset()
 
-    copied_path = tmp_path / ".baodou" / "floating_assets" / "ball_asset.png"
+    copied_path = tmp_path / ".coview" / "floating_assets" / "ball_asset.png"
     assert copied_path.exists()
     assert config.get("floating_ball_config.asset_path") == str(copied_path)
     assert changes[-1] == ("floating_ball_config.asset_path", str(copied_path))
@@ -1650,17 +1650,17 @@ def test_control_console_wake_word_phrase_widgets_save_and_restore(monkeypatch, 
     assert window._wake_word_phrase_widgets["zh"].text() == "你好彤彤"
     assert window._wake_word_phrase_widgets["en"].text() == "hello Lulu"
 
-    window._set_wake_word_phrase("zh", "你好包豆")
-    window._set_wake_word_phrase("en", "Hey Baodou")
+    window._set_wake_word_phrase("zh", "你好同窗")
+    window._set_wake_word_phrase("en", "Hey CoView")
 
-    assert config.get_wake_word_phrase("zh") == "你好包豆"
-    assert config.get_wake_word_phrase("en") == "Hey Baodou"
+    assert config.get_wake_word_phrase("zh") == "你好同窗"
+    assert config.get_wake_word_phrase("en") == "Hey CoView"
 
     restored_config = Config.create_isolated(str(config_path))
     restored_window = ControlConsoleWindow(restored_config, RuntimeLogBuffer())
 
-    assert restored_window._wake_word_phrase_widgets["zh"].text() == "你好包豆"
-    assert restored_window._wake_word_phrase_widgets["en"].text() == "Hey Baodou"
+    assert restored_window._wake_word_phrase_widgets["zh"].text() == "你好同窗"
+    assert restored_window._wake_word_phrase_widgets["en"].text() == "Hey CoView"
 
 
 def test_control_console_shows_footer_entries_and_switches_locale(monkeypatch, tmp_path):
@@ -1681,7 +1681,7 @@ def test_control_console_shows_footer_entries_and_switches_locale(monkeypatch, t
         config.set("voice_interaction_config.stop_spoken_text", "好的，已停止当前任务。")
         window = ControlConsoleWindow(config, RuntimeLogBuffer())
 
-        assert window.windowTitle() == "包豆电脑设置"
+        assert window.windowTitle() == "同窗设置"
         assert [window._footer_sidebar.item(index).text() for index in range(window._footer_sidebar.count())] == [
             "关于",
             "语言 / Language",
@@ -1708,7 +1708,7 @@ def test_control_console_shows_footer_entries_and_switches_locale(monkeypatch, t
             config.get("voice_interaction_config.stop_spoken_text")
             == "Okay, I stopped the current task."
         )
-        assert window.windowTitle() == "Baodou AI Settings"
+        assert window.windowTitle() == "CoView Settings"
         assert window._current_page_id == "language"
         assert window._sidebar.item(0).text() == "General"
         assert window._sidebar.item(5).text() == "Background Agent"
@@ -2904,7 +2904,7 @@ def test_tracker_does_not_record_current_process_as_external_app():
 
     tracker = FrontmostAppTracker(
         _TrackerPlatformAdapter([
-            {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
+            {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
         ]),
         own_pid=999,
     )

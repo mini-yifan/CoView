@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "baodou-ai"
+name = "coview"
 version = "2.0.0"
-description = "AI智能电脑控制系统 - 基于视觉模型的自动化操作"
+description = "CoView 同窗 - 基于视觉模型的桌面 AI 助手"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
-    {name = "包豆电脑团队"}
+    {name = "CoView Team"}
 ]
 keywords = [
     "ai",
@@ -83,13 +83,14 @@ build = [
 ]
 
 [project.scripts]
-baodou-ai = "baodou_ai.__main__:main"
+coview = "baodou_ai.__main__:main"
+coview-cli = "baodou_ai.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/mini-yifan/baodou_ai2.0_mac"
-Documentation = "https://github.com/mini-yifan/baodou_ai2.0_mac#readme"
-Repository = "https://github.com/mini-yifan/baodou_ai2.0_mac.git"
-Issues = "https://github.com/mini-yifan/baodou_ai2.0_mac/issues"
+Homepage = "https://github.com/mini-yifan/CoView"
+Documentation = "https://github.com/mini-yifan/CoView#readme"
+Repository = "https://github.com/mini-yifan/CoView.git"
+Issues = "https://github.com/mini-yifan/CoView/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

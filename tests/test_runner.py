@@ -2435,7 +2435,7 @@ def test_runner_restores_external_focus_before_capture_and_injects_frontmost_pro
     runner._read_memory_content = lambda: ""
     runner._screenshot = FakeScreenshot([[make_bundle()]])
     runner._automation = FakeAutomation(frontmost_sequence=[
-        {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
+        {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
         {"app_name": "Google Chrome", "bundle_id": "com.google.Chrome", "pid": 222},
         {"app_name": "Google Chrome", "bundle_id": "com.google.Chrome", "pid": 222},
     ])
@@ -2467,9 +2467,9 @@ def test_runner_injects_focus_fallback_prompt_when_external_focus_unavailable(ca
     runner._read_memory_content = lambda: ""
     runner._screenshot = FakeScreenshot([[make_bundle()]])
     runner._automation = FakeAutomation(frontmost_sequence=[
-        {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
-        {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
-        {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
+        {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
+        {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
+        {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
     ], activate_result=False)
     runner._ai_client = FakeAIClient([{
         "status": "respond",
@@ -2498,10 +2498,10 @@ def test_runner_clears_stale_external_frontmost_app_after_restore_failure():
     runner._screenshot = FakeScreenshot([[make_bundle()], [make_bundle(value=1)]])
     runner._automation = FakeAutomation(
         frontmost_sequence=[
-            {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
-            {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
-            {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
-            {"app_name": "BaodouAI", "bundle_id": "com.example.baodou", "pid": 999},
+            {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
+            {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
+            {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
+            {"app_name": "CoViewAI", "bundle_id": "com.example.coview", "pid": 999},
         ],
         activate_result=False,
     )

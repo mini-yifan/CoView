@@ -1,6 +1,6 @@
-# 包豆电脑 - 项目集成指南
+# 同窗 - 项目集成指南
 
-本文档详细说明如何从零开始，将包豆电脑集成到你的项目中。
+本文档详细说明如何从零开始，将同窗集成到你的项目中。
 
 ---
 
@@ -26,15 +26,15 @@
 cd C:\你的项目目录
 
 # 克隆项目
-git clone https://github.com/mini-yifan/baodou_ai2.0_mac.git
+git clone https://github.com/mini-yifan/CoView.git
 
 # 进入项目文件夹
-cd baodou_ai2.0_mac
+cd CoView
 ```
 
 ### 方法二：直接下载 ZIP
 
-1. 打开浏览器，访问：`https://github.com/mini-yifan/baodou_ai2.0_mac`
+1. 打开浏览器，访问：`https://github.com/mini-yifan/CoView`
 2. 点击绿色的 **Code** 按钮
 3. 选择 **Download ZIP**
 4. 解压到你想要的位置
@@ -60,7 +60,7 @@ source venv/bin/activate
 
 ```bash
 # 进入项目目录
-cd C:\你的路径\baodou_ai2.0_mac
+cd C:\你的路径\CoView
 
 # 安装项目（这会自动安装所有依赖）
 pip install -e .
@@ -72,7 +72,7 @@ pip install -e .
 
 ## 第三步：配置 API 密钥
 
-包豆电脑需要 API 密钥才能调用 AI 模型。
+同窗需要 API 密钥才能调用 AI 模型。
 
 ### 3.1 获取 API 密钥
 
@@ -85,10 +85,10 @@ pip install -e .
 **方式一：在代码中直接传入（最简单）**
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
 # 直接传入 API 密钥
-ai = BaodouAI(api_key="你的API密钥")
+ai = CoViewAI(api_key="你的API密钥")
 ```
 
 **方式二：使用配置文件**
@@ -126,10 +126,10 @@ print(result)
 ### 4.2 使用类的方式（推荐）
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
 # 创建 AI 控制器
-ai = BaodouAI(api_key="你的API密钥")
+ai = CoViewAI(api_key="你的API密钥")
 
 # 执行任务
 result = ai.execute("打开浏览器并访问百度")
@@ -147,7 +147,7 @@ C:\我的项目\
 └── venv/            # 你的虚拟环境
 ```
 
-**方法一：安装包豆电脑到你的虚拟环境**
+**方法一：安装同窗到你的虚拟环境**
 
 ```bash
 # 在你的项目目录中
@@ -156,16 +156,16 @@ cd C:\我的项目
 # 激活虚拟环境
 venv\Scripts\activate
 
-# 安装包豆电脑
-pip install -e C:\路径\baodou_ai2.0_mac
+# 安装同窗
+pip install -e C:\路径\CoView
 ```
 
 然后在 `main.py` 中：
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
-ai = BaodouAI(api_key="你的密钥")
+ai = CoViewAI(api_key="你的密钥")
 result = ai.execute("打开计算器")
 ```
 
@@ -173,11 +173,11 @@ result = ai.execute("打开计算器")
 
 ```python
 import sys
-sys.path.insert(0, r"C:\路径\baodou_ai2.0_mac\src")
+sys.path.insert(0, r"C:\路径\CoView\src")
 
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
-ai = BaodouAI(api_key="你的密钥")
+ai = CoViewAI(api_key="你的密钥")
 result = ai.execute("打开计算器")
 ```
 
@@ -208,7 +208,7 @@ print(f"执行结果: {result}")
 """
 带回调函数的使用示例 - 可以看到每一步的执行情况
 """
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
 def on_iteration(index, info):
     """每次迭代都会调用这个函数"""
@@ -219,7 +219,7 @@ def on_iteration(index, info):
     print()
 
 # 创建控制器
-ai = BaodouAI(api_key="你的API密钥")
+ai = CoViewAI(api_key="你的API密钥")
 
 # 执行任务，并传入回调函数
 result = ai.execute(
@@ -239,14 +239,14 @@ print(f"最终结果: {result}")
 """
 import sys
 
-# 添加包豆电脑的路径（如果需要）
-sys.path.insert(0, r"C:\baodou_ai2.0_mac\src")
+# 添加同窗的路径（如果需要）
+sys.path.insert(0, r"C:\CoView\src")
 
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
 class MyAutomationApp:
     def __init__(self, api_key):
-        self.ai = BaodouAI(api_key=api_key)
+        self.ai = CoViewAI(api_key=api_key)
     
     def run_task(self, task_description):
         """执行自动化任务"""
@@ -274,13 +274,13 @@ if __name__ == "__main__":
 
 ```bash
 # 基本用法
-python -m baodou_ai.cli "打开记事本" --api-key 你的密钥
+coview-cli "打开记事本" --api-key 你的密钥
 
 # 指定最大迭代次数
-python -m baodou_ai.cli "打开浏览器" --api-key 你的密钥 --max-iterations 10
+coview-cli "打开浏览器" --api-key 你的密钥 --max-iterations 10
 
 # 查看帮助
-python -m baodou_ai.cli --help
+coview-cli --help
 ```
 
 ---
@@ -293,14 +293,14 @@ python -m baodou_ai.cli --help
 
 ```bash
 # 确保在正确的环境中
-pip install -e C:\路径\baodou_ai2.0_mac
+pip install -e C:\路径\CoView
 ```
 
 或者在代码中添加路径：
 
 ```python
 import sys
-sys.path.insert(0, r"C:\路径\baodou_ai2.0_mac\src")
+sys.path.insert(0, r"C:\路径\CoView\src")
 ```
 
 ### Q2: 提示 API 密钥错误
@@ -328,7 +328,7 @@ sys.path.insert(0, r"C:\路径\baodou_ai2.0_mac\src")
 import threading
 import time
 
-ai = BaodouAI(api_key="你的密钥")
+ai = CoViewAI(api_key="你的密钥")
 
 # 在另一个线程中执行
 def run_task():
@@ -371,13 +371,13 @@ ai.stop()
 
 ```python
 # 导入
-from baodou_ai import BaodouAI, execute_task
+from baodou_ai import CoViewAI, execute_task
 
 # 方式一：便捷函数
 result = execute_task("任务描述", api_key="密钥")
 
 # 方式二：类实例
-ai = BaodouAI(api_key="密钥")
+ai = CoViewAI(api_key="密钥")
 result = ai.execute("任务描述", max_iterations=15)
 
 # 方式三：带回调
@@ -387,7 +387,7 @@ ai.execute("任务", on_iteration=lambda i, info: print(info))
 ai.stop()
 
 # 命令行
-# python -m baodou_ai.cli "任务" --api-key 密钥
+# coview-cli "任务" --api-key 密钥
 ```
 
 ---

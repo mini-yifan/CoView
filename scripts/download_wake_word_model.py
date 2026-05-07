@@ -121,7 +121,7 @@ def download_file(
     print(f"[wake-word] TLS 证书来源: {context_source}")
     request = urllib.request.Request(
         url,
-        headers={"User-Agent": f"baodou-ai/{MODEL_NAME}"},
+        headers={"User-Agent": f"coview/{MODEL_NAME}"},
     )
     temp_path = destination.with_suffix(destination.suffix + ".part")
     with urllib.request.urlopen(request, timeout=timeout, context=context) as response:

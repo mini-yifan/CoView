@@ -1760,7 +1760,7 @@ class ControlConsoleWindow(QMainWindow):
             self.append_log(t("log_unsupported_floating_asset") + "\n", "warning")
             return
 
-        target_dir = Path.home() / ".baodou" / "floating_assets"
+        target_dir = Path.home() / ".coview" / "floating_assets"
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / f"ball_asset{suffix}"
         try:
@@ -1804,7 +1804,7 @@ class ControlConsoleWindow(QMainWindow):
         self._flush_pending_logs(force=True)
 
     def _save_log(self) -> None:
-        default_name = f"baodou-agent-log-{time.strftime('%Y%m%d-%H%M%S')}.log"
+        default_name = f"coview-agent-log-{time.strftime('%Y%m%d-%H%M%S')}.log"
         target_path, _ = QFileDialog.getSaveFileName(self, t("log_save_title"), default_name, t("dialog_log_filter"))
         if not target_path:
             return

@@ -1,15 +1,15 @@
-<h1 align="center">Baodou AI - Vision-Powered Desktop Assistant</h1>
+<h1 align="center">CoView - Vision-Powered Desktop Assistant</h1>
 
 <p align="center">
   <a href="README.zh-CN.md">中文文档</a>
 </p>
 
 <p align="center">
-  <img src="image_capture_20260425_140311.png" alt="Baodou AI desktop assistant preview" width="960">
+  <img src="image_capture_20260425_140311.png" alt="CoView desktop assistant preview" width="960">
 </p>
 
 <p align="center">
-  <a href="https://github.com/mini-yifan/baodou_ai2.0_mac"><img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-0A84FF?style=for-the-badge"></a>
+  <a href="https://github.com/mini-yifan/CoView"><img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-0A84FF?style=for-the-badge"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-111827?style=for-the-badge">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-22C55E?style=for-the-badge"></a>
@@ -21,15 +21,15 @@
 
 ---
 
-## Why Baodou AI
+## Why CoView
 
-Baodou AI is a local desktop automation agent built around a visual model control loop:
+CoView is a local desktop automation agent built around a visual model control loop:
 
 ```text
 Observe screen -> reason about the task -> execute one action -> observe again
 ```
 
-Instead of only chatting, Baodou AI can interact with the software you already use: browsers, editors, documents, websites, desktop apps, and coding workspaces. It supports a floating GUI, a terminal CLI, and a Python API, all routed through the same `ControlLoopRunner`.
+Instead of only chatting, CoView can interact with the software you already use: browsers, editors, documents, websites, desktop apps, and coding workspaces. It supports a floating GUI, a terminal CLI, and a Python API, all routed through the same `ControlLoopRunner`.
 
 ## Highlights
 
@@ -44,7 +44,7 @@ Instead of only chatting, Baodou AI can interact with the software you already u
 
 ## Status
 
-Baodou AI 2.0 is in beta. The architecture is already split into GUI, platform, voice, code-agent, model, and runner modules, but some areas are still moving quickly. Expect active iteration, especially around model adapters, UI polish, and packaged releases.
+CoView 2.0 is in beta. The architecture is already split into GUI, platform, voice, code-agent, model, and runner modules, but some areas are still moving quickly. Expect active iteration, especially around model adapters, UI polish, and packaged releases.
 
 ## Quick Start
 
@@ -58,8 +58,8 @@ Requirements:
 
 | macOS / Linux | Windows PowerShell |
 | --- | --- |
-| `git clone https://github.com/mini-yifan/baodou_ai2.0_mac.git` | `git clone https://github.com/mini-yifan/baodou_ai2.0_mac.git` |
-| `cd baodou_ai2.0_mac` | `cd baodou_ai2.0_mac` |
+| `git clone https://github.com/mini-yifan/CoView.git` | `git clone https://github.com/mini-yifan/CoView.git` |
+| `cd CoView` | `cd CoView` |
 
 ### 2. Create and activate a virtual environment
 
@@ -74,7 +74,7 @@ If PowerShell blocks activation, run this once in the same PowerShell window:
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-### 3. Install Baodou AI
+### 3. Install CoView
 
 | macOS | Windows |
 | --- | --- |
@@ -89,7 +89,7 @@ For development tools:
 
 ### 4. Configure your model
 
-Baodou AI reads `config.json` from the repository root and merges it with defaults from `src/baodou_ai/core/config.py`.
+CoView reads `config.json` from the repository root and merges it with defaults from `src/baodou_ai/core/config.py`.
 
 Edit these fields first:
 
@@ -113,10 +113,9 @@ Notes:
 
 | Goal | macOS | Windows |
 | --- | --- | --- |
-| Start the floating GUI | `python3 -m baodou_ai` | `py -m baodou_ai` |
-| Start through installed script | `baodou-ai` | `baodou-ai` |
-| Run one CLI task | `python3 -m baodou_ai.cli "Open the browser and search today's weather"` | `py -m baodou_ai.cli "Open Notepad and type Hello"` |
-| Limit task steps | `python3 -m baodou_ai.cli "Summarize the current page" --max-iterations 20` | `py -m baodou_ai.cli "Open Calculator" --max-iterations 20` |
+| Start the floating GUI | `coview` | `coview` |
+| Run one CLI task | `coview-cli "Open the browser and search today's weather"` | `coview-cli "Open Notepad and type Hello"` |
+| Limit task steps | `coview-cli "Summarize the current page" --max-iterations 20` | `coview-cli "Open Calculator" --max-iterations 20` |
 | Stop a CLI task | `Ctrl+C` | `Ctrl+C` |
 
 ## macOS vs Windows Differences
@@ -135,7 +134,7 @@ When writing tasks, natural language is usually better than naming platform-spec
 
 ## First Interaction in 60 Seconds
 
-1. Start the GUI with `python3 -m baodou_ai` on macOS or `py -m baodou_ai` on Windows.
+1. Start the GUI with `coview` on macOS or `coview` on Windows.
 2. Open the floating assistant settings and enter your model API key, base URL, and model name.
 3. Click the floating assistant input, type a task, and press Enter.
 4. Watch the assistant report what it is doing. It will observe the screen, choose one action, execute it, then continue until the task is done.
@@ -192,25 +191,25 @@ py scripts\download_wake_word_model.py --url "https://your-cdn.example.com/model
 ## CLI Usage
 
 ```bash
-python3 -m baodou_ai.cli "Open the browser and search Baodou AI" --api-key YOUR_API_KEY
-python3 -m baodou_ai.cli "Close the active window" --max-iterations 10
-python3 -m baodou_ai.cli "Read the current page and summarize it" --base-url https://api.example.com
+coview-cli "Open the browser and search CoView" --api-key YOUR_API_KEY
+coview-cli "Close the active window" --max-iterations 10
+coview-cli "Read the current page and summarize it" --base-url https://api.example.com
 ```
 
 Windows:
 
 ```powershell
-py -m baodou_ai.cli "Open Notepad and type Hello" --api-key YOUR_API_KEY
-py -m baodou_ai.cli "Close the active window" --max-iterations 10
-py -m baodou_ai.cli "Read the current page and summarize it" --base-url https://api.example.com
+coview-cli "Open Notepad and type Hello" --api-key YOUR_API_KEY
+coview-cli "Close the active window" --max-iterations 10
+coview-cli "Read the current page and summarize it" --base-url https://api.example.com
 ```
 
 ## Python API
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
-ai = BaodouAI(
+ai = CoViewAI(
     api_key="YOUR_API_KEY",
     base_url="https://ark.cn-beijing.volces.com/api/v3",
     model_name="doubao-seed-1-6-vision-250815",
@@ -227,9 +226,9 @@ print(result)
 With progress callbacks:
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
-ai = BaodouAI(api_key="YOUR_API_KEY")
+ai = CoViewAI(api_key="YOUR_API_KEY")
 
 def on_iteration(index, info):
     print(f"[step {index + 1}] {info.get('thinking', '')}")
@@ -243,7 +242,7 @@ result = ai.execute(
 ## Project Structure
 
 ```text
-baodou_ai2.0_mac/
+CoView/
 ├── src/baodou_ai/
 │   ├── __main__.py              # Floating GUI entry
 │   ├── api.py                   # Embeddable Python API
@@ -311,7 +310,7 @@ Example:
 
 ## Safety Notes
 
-Baodou AI controls real desktop input. Start with low-risk tasks, keep sensitive apps closed during testing, and watch the first few runs. On macOS, grant only the permissions you understand. On Windows, avoid running the assistant as administrator unless you specifically need to control administrator-level windows.
+CoView controls real desktop input. Start with low-risk tasks, keep sensitive apps closed during testing, and watch the first few runs. On macOS, grant only the permissions you understand. On Windows, avoid running the assistant as administrator unless you specifically need to control administrator-level windows.
 
 ## Contributing
 
@@ -327,4 +326,4 @@ Please keep changes focused, add tests for behavior changes, and avoid committin
 
 ## License
 
-Baodou AI is released under the [MIT License](LICENSE).
+CoView is released under the [MIT License](LICENSE).

@@ -1,6 +1,6 @@
 import pytest
 
-from baodou_ai.api import BaodouAI
+from baodou_ai.api import CoViewAI
 from baodou_ai.gui.main_window import AIWorker
 from baodou_ai.platform.mouse_motion import (
     MouseMotionCancelled,
@@ -47,7 +47,7 @@ def test_api_stop_cancels_mouse_motion(monkeypatch):
     calls = []
     monkeypatch.setattr("baodou_ai.api.cancel_current_mouse_motion", lambda: calls.append("cancel"))
 
-    ai = BaodouAI(config=object())
+    ai = CoViewAI(config=object())
     ai.stop()
 
     assert calls == ["cancel"]

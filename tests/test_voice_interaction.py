@@ -712,8 +712,8 @@ def test_wake_word_listening_prompt_uses_default_phrases(tmp_path):
 
 def test_wake_word_listening_prompt_uses_custom_phrases(tmp_path):
     config = Config.create_isolated(str(tmp_path / "config.json"))
-    config.set_wake_word_phrase("zh", "你好包豆")
-    config.set_wake_word_phrase("en", "hey Baodou")
+    config.set_wake_word_phrase("zh", "你好同窗")
+    config.set_wake_word_phrase("en", "hey CoView")
     controller = FloatingController.__new__(FloatingController)
     controller._config = config
     controller._voice = SimpleNamespace(running=False)
@@ -728,7 +728,7 @@ def test_wake_word_listening_prompt_uses_custom_phrases(tmp_path):
     )
 
     assert controller._applied_indicators == [("wake_listening", 0.0)]
-    assert controller.toast_window.messages == [(controller.ball_anchor, "待唤醒: 你好包豆 / hey Baodou")]
+    assert controller.toast_window.messages == [(controller.ball_anchor, "待唤醒: 你好同窗 / hey CoView")]
 
 
 def test_wake_word_hit_enters_existing_voice_chain(tmp_path):

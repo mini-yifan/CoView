@@ -268,9 +268,9 @@ class LogWindow(QWidget):
             self.stdout_stream.flush()
             self.stderr_stream.flush()
             self._flush_pending_logs(force=True)
-            with open("baodou_log.txt", "w", encoding="utf-8") as f:
+            with open("coview_log.txt", "w", encoding="utf-8") as f:
                 f.write(self.log_text.toPlainText())
-            self.append_log("日志已保存到 baodou_log.txt\n", "info")
+            self.append_log("日志已保存到 coview_log.txt\n", "info")
             self._flush_pending_logs(force=True)
         except Exception as e:
             self.append_log(f"保存日志失败: {str(e)}\n", "error")

@@ -1,12 +1,12 @@
 """
-包豆电脑 API 使用示例
+同窗 API 使用示例
 
-本文件展示如何在其他项目中使用包豆电脑的 API。
+本文件展示如何在其他项目中使用同窗的 API。
 """
 
 import time
 
-from baodou_ai import BaodouAI, execute_task
+from baodou_ai import CoViewAI, execute_task
 
 
 def example_1_simple_task():
@@ -26,13 +26,13 @@ def example_1_simple_task():
 
 
 def example_2_class_api():
-    """示例 2: 使用 BaodouAI 类"""
+    """示例 2: 使用 CoViewAI 类"""
     print("\n" + "=" * 60)
-    print("示例 2: 使用 BaodouAI 类")
+    print("示例 2: 使用 CoViewAI 类")
     print("=" * 60)
 
     try:
-        ai = BaodouAI(
+        ai = CoViewAI(
             api_key="your_api_key_here",  # 替换为你的 API Key
             base_url="https://api.example.com",  # 可选
             model_name="your_model_name",  # 可选
@@ -54,7 +54,7 @@ def example_3_with_callbacks():
     print("=" * 60)
 
     try:
-        ai = BaodouAI(api_key="your_api_key_here")
+        ai = CoViewAI(api_key="your_api_key_here")
 
         def on_iteration(idx, info):
             """迭代回调"""
@@ -86,7 +86,7 @@ def example_4_stop_task():
     print("=" * 60)
 
     try:
-        ai = BaodouAI(api_key="your_api_key_here")
+        ai = CoViewAI(api_key="your_api_key_here")
 
         import threading
 
@@ -108,7 +108,7 @@ def example_4_stop_task():
 
 
 if __name__ == "__main__":
-    print("包豆电脑 API 使用示例\n")
+    print("同窗 API 使用示例\n")
     print("请将 'your_api_key_here' 替换为你的实际 API Key 后再运行示例\n")
     start_time = time.time()
 

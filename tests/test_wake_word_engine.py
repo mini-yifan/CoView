@@ -113,13 +113,13 @@ class _FakeSpotter:
 
 def test_sherpa_keyword_spotter_returns_hit_and_resets_stream():
     backend = _FakeKeywordBackend(
-        [{"keyword": "BAODOU_en_1_hello_Lulu", "score": 0.86, "language": "en"}]
+        [{"keyword": "COVIEW_en_1_hello_Lulu", "score": 0.86, "language": "en"}]
     )
     spotter = SherpaKeywordSpotter(
         SherpaKeywordSpotterSettings(
             phrases=(
-                WakeWordPhrase(text="你好彤彤", language="zh", label="BAODOU_zh_0_你好彤彤"),
-                WakeWordPhrase(text="hello Lulu", language="en", label="BAODOU_en_1_hello_Lulu"),
+                WakeWordPhrase(text="你好彤彤", language="zh", label="COVIEW_zh_0_你好彤彤"),
+                WakeWordPhrase(text="hello Lulu", language="en", label="COVIEW_en_1_hello_Lulu"),
             ),
             threshold=0.5,
             sample_rate=16000,
@@ -154,8 +154,8 @@ def test_sherpa_keyword_spotter_generates_keywords_text_with_labels(tmp_path, mo
     monkeypatch.setitem(sys.modules, "sherpa_onnx", _FakeSherpaModule())
     settings = SherpaKeywordSpotterSettings(
         phrases=(
-            WakeWordPhrase(text="你好彤彤", language="zh", label="BAODOU_zh_0_你好彤彤"),
-            WakeWordPhrase(text="hello Lulu", language="en", label="BAODOU_en_1_hello_Lulu"),
+            WakeWordPhrase(text="你好彤彤", language="zh", label="COVIEW_zh_0_你好彤彤"),
+            WakeWordPhrase(text="hello Lulu", language="en", label="COVIEW_en_1_hello_Lulu"),
         ),
         model_dir=str(model_dir),
     )
@@ -163,8 +163,8 @@ def test_sherpa_keyword_spotter_generates_keywords_text_with_labels(tmp_path, mo
 
     keywords_text = spotter._build_keywords_text(settings)
 
-    assert "n i3 hao3 @BAODOU_zh_0_你好彤彤" in keywords_text
-    assert "HH AH0 L UW1 L UW1 @BAODOU_en_1_hello_Lulu" in keywords_text
+    assert "n i3 hao3 @COVIEW_zh_0_你好彤彤" in keywords_text
+    assert "HH AH0 L UW1 L UW1 @COVIEW_en_1_hello_Lulu" in keywords_text
 
 
 def test_sherpa_keyword_spotter_filters_low_score_hits():
@@ -304,8 +304,8 @@ def test_wake_word_engine_refresh_config_restarts_with_new_settings():
     config.set(
         "wake_word_config.phrases",
         [
-            {"text": "你好包豆", "language": "zh"},
-            {"text": "Hey Baodou", "language": "en"},
+            {"text": "你好同窗", "language": "zh"},
+            {"text": "Hey CoView", "language": "en"},
         ],
     )
 
@@ -313,8 +313,8 @@ def test_wake_word_engine_refresh_config_restarts_with_new_settings():
 
     assert len(created_settings) == 2
     assert created_settings[-1].threshold == 0.5
-    assert created_settings[-1].phrases[0].text == "你好包豆"
-    assert created_settings[-1].phrases[1].text == "Hey Baodou"
+    assert created_settings[-1].phrases[0].text == "你好同窗"
+    assert created_settings[-1].phrases[1].text == "Hey CoView"
     assert engine.state == "listening"
 
 

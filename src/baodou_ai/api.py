@@ -1,5 +1,5 @@
 """
-包豆电脑 API 模块
+CoView 同窗 API 模块
 
 提供无 GUI 的自动化操作接口，可以被其他项目直接调用使用。
 """
@@ -11,14 +11,14 @@ from baodou_ai.core.runner import ControlLoopRunner
 from baodou_ai.platform import cancel_current_mouse_motion
 
 
-class BaodouAI:
-    """包豆电脑 AI 自动化控制器
+class CoViewAI:
+    """CoView AI 自动化控制器
 
     提供无 GUI 的 API 接口，可以被其他项目直接调用。
 
     Example:
-        >>> from baodou_ai import BaodouAI
-        >>> ai = BaodouAI(api_key="your_api_key")
+        >>> from baodou_ai import CoViewAI
+        >>> ai = CoViewAI(api_key="your_api_key")
         >>> result = ai.execute("打开浏览器")
         >>> print(result)
     """
@@ -30,7 +30,7 @@ class BaodouAI:
         model_name: Optional[str] = None,
         config: Optional[Config] = None,
     ):
-        """初始化 BaodouAI
+        """初始化 CoViewAI
 
         Args:
             api_key: API 密钥，如果提供会覆盖配置文件中的值
@@ -120,5 +120,8 @@ def execute_task(
         >>> from baodou_ai import execute_task
         >>> result = execute_task("打开记事本", api_key="your_key")
     """
-    ai = BaodouAI(api_key=api_key, base_url=base_url, model_name=model_name)
+    ai = CoViewAI(api_key=api_key, base_url=base_url, model_name=model_name)
     return ai.execute(task, max_iterations=max_iterations)
+
+
+BaodouAI = CoViewAI

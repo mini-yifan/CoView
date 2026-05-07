@@ -7,7 +7,7 @@ from typing import Dict, List
 class SessionHistory:
     DEFAULT_MAX_TASKS = 5
 
-    def __init__(self, file_path: str = "~/.baodou/session_history.json", max_tasks: int = DEFAULT_MAX_TASKS):
+    def __init__(self, file_path: str = "~/.coview/session_history.json", max_tasks: int = DEFAULT_MAX_TASKS):
         self.file_path = os.path.expanduser(file_path)
         self.max_tasks = max(1, min(10, max_tasks))
         self._tasks: List[Dict] = self._load()

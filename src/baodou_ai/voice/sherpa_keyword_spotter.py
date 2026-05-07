@@ -88,7 +88,7 @@ class SherpaKeywordSpotterSettings:
         normalized_text = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "_", str(text or "").strip())
         normalized_text = normalized_text.strip("_") or "wake"
         normalized_language = str(language or "any").strip().lower() or "any"
-        return f"BAODOU_{normalized_language}_{index}_{normalized_text}"
+        return f"COVIEW_{normalized_language}_{index}_{normalized_text}"
 
 
 class _SherpaKeywordSpotterBackend(Protocol):
@@ -315,7 +315,7 @@ class SherpaKeywordSpotter:
         if not keywords_text:
             return ""
 
-        self._keywords_tempdir = tempfile.TemporaryDirectory(prefix="baodou-kws-")
+        self._keywords_tempdir = tempfile.TemporaryDirectory(prefix="coview-kws-")
         keywords_path = Path(self._keywords_tempdir.name) / "keywords.txt"
         keywords_path.write_text(keywords_text, encoding="utf-8")
         return str(keywords_path)

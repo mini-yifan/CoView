@@ -1,29 +1,29 @@
-# 包豆电脑 API 使用文档
+# 同窗 API 使用文档
 
-本文档说明如何在其他项目中使用包豆电脑的 API 接口。
+本文档说明如何在其他项目中使用同窗的 API 接口。
 
 ## 快速开始
 
 ### 1. 安装
 
-确保你已经安装了包豆电脑项目。
+确保你已经安装了同窗项目。
 
 ### 2. 导入 API
 
 ```python
-from baodou_ai import BaodouAI, execute_task
+from baodou_ai import CoViewAI, execute_task
 ```
 
 ## API 参考
 
-### BaodouAI 类
+### CoViewAI 类
 
 主要的自动化控制器类。
 
 #### 构造函数
 
 ```python
-BaodouAI(
+CoViewAI(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     model_name: Optional[str] = None,
@@ -107,12 +107,12 @@ result = execute_task(
 print(result)
 ```
 
-### 示例 2: 使用 BaodouAI 类
+### 示例 2: 使用 CoViewAI 类
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
-ai = BaodouAI(
+ai = CoViewAI(
     api_key="your_api_key",
     base_url="https://api.example.com",
     model_name="your_model"
@@ -128,9 +128,9 @@ print(result)
 ### 示例 3: 使用回调函数
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 
-ai = BaodouAI(api_key="your_api_key")
+ai = CoViewAI(api_key="your_api_key")
 
 def on_iteration(idx, info):
     print(f"[迭代 {idx}] 思考: {info['thinking']}")
@@ -158,11 +158,11 @@ result = ai.execute(
 ### 示例 4: 停止正在执行的任务
 
 ```python
-from baodou_ai import BaodouAI
+from baodou_ai import CoViewAI
 import threading
 import time
 
-ai = BaodouAI(api_key="your_api_key")
+ai = CoViewAI(api_key="your_api_key")
 
 def stop_after_delay():
     time.sleep(10)  # 10 秒后停止
@@ -184,7 +184,7 @@ print(result)
 ### 基本用法
 
 ```bash
-python -m baodou_ai.cli "任务描述" --api-key YOUR_KEY
+coview-cli "任务描述" --api-key YOUR_KEY
 ```
 
 ### 命令行参数
@@ -202,13 +202,13 @@ python -m baodou_ai.cli "任务描述" --api-key YOUR_KEY
 
 ```bash
 # 简单任务
-python -m baodou_ai.cli "打开浏览器" --api-key YOUR_KEY
+coview-cli "打开浏览器" --api-key YOUR_KEY
 
 # 指定最大迭代次数
-python -m baodou_ai.cli "打开记事本" --api-key YOUR_KEY --max-iterations 10
+coview-cli "打开记事本" --api-key YOUR_KEY --max-iterations 10
 
 # 指定 API 地址
-python -m baodou_ai.cli "关闭窗口" --api-key YOUR_KEY --base-url https://api.example.com
+coview-cli "关闭窗口" --api-key YOUR_KEY --base-url https://api.example.com
 ```
 
 ## 当前项目结构
