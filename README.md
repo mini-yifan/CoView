@@ -1,4 +1,4 @@
-<h1 align="center">CoView - Vision-Powered Desktop Assistant</h1>
+<h1 align="center">CoView - Desktop AI Companion</h1>
 
 <p align="center">
   <a href="README.zh-CN.md">中文文档</a>
@@ -16,31 +16,35 @@
 </p>
 
 <p align="center">
-  A personal AI assistant that watches your screen, understands your intent, and operates desktop apps through mouse, keyboard, voice, and background code-agent workflows.
+  A desktop AI companion that sees, acts, and collaborates, turning your computer into a living workspace.
 </p>
 
 ---
 
 ## Why CoView
 
-CoView is a local desktop automation agent built around a visual model control loop:
+CoView is built for a simple idea: your computer should not just wait for commands. It should see what you see, understand what you are trying to do, and work with you across the apps already on your screen.
+
+At its core, CoView is a local desktop AI companion powered by a visual control loop:
 
 ```text
 Observe screen -> reason about the task -> execute one action -> observe again
 ```
 
-Instead of only chatting, CoView can interact with the software you already use: browsers, editors, documents, websites, desktop apps, and coding workspaces. It supports a floating GUI, a terminal CLI, and a Python API, all routed through the same `ControlLoopRunner`.
+That means CoView is not limited to chat. It can operate browsers, editors, documents, websites, desktop apps, and coding workspaces through mouse, keyboard, voice, and background code-agent workflows. The goal is to make the desktop feel less like a passive tool and more like a responsive workspace that can collaborate with you.
 
 ## Highlights
 
-- Visual desktop control with screenshot observation and multi-display support.
-- Mouse and keyboard automation: click, drag, scroll, hotkeys, text input, page/document reading, and browser opening.
-- Floating assistant UI with task input, stop control, runtime logs, settings, language switching, and companion suggestions.
-- Voice interaction with ASR, TTS, local wake-word detection, and visual recording indicators.
-- Background Code Agent jobs through providers such as Codex, Claude, Kimi, Qwen, and CodeBuddy.
-- Cross-platform adapters for macOS and Windows.
-- OpenAI-compatible model endpoint support through `base_url`, `api_key`, and `model_name`.
-- Testable Python package with CLI and embeddable API.
+| Capability | What CoView Does |
+| --- | --- |
+| See | Observes your desktop through screenshots, with multi-display support and visual reasoning. |
+| Act | Operates real software with clicks, drags, scrolling, hotkeys, text input, browser opening, and page/document reading. |
+| Collaborate | Works from a floating assistant UI with task input, stop control, runtime logs, settings, language switching, and companion suggestions. |
+| Listen & Respond | Supports ASR, TTS, local wake-word detection, and visual recording indicators. |
+| Background Code Agent | Runs coding and automation jobs in the background through providers such as Codex, Claude, Kimi, Qwen, and CodeBuddy. |
+| Cross Platform | Provides adapters for macOS and Windows. |
+| Model Flexible | Uses OpenAI-compatible model endpoints through `base_url`, `api_key`, and `model_name`. |
+| Developer Ready | Ships as a testable Python package with CLI and embeddable API. |
 
 ## Status
 
@@ -97,8 +101,8 @@ Edit these fields first:
 {
   "api_config": {
     "api_key": "YOUR_API_KEY",
-    "base_url": "https://ark.cn-beijing.volces.com/api/v3",
-    "model_name": "doubao-seed-1-6-vision-250815"
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "model_name": "qwen3.6-35b-a3b"
   }
 }
 ```
@@ -211,8 +215,8 @@ from baodou_ai import CoViewAI
 
 ai = CoViewAI(
     api_key="YOUR_API_KEY",
-    base_url="https://ark.cn-beijing.volces.com/api/v3",
-    model_name="doubao-seed-1-6-vision-250815",
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    model_name="qwen3.6-35b-a3b",
 )
 
 result = ai.execute(

@@ -661,12 +661,12 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_api.add_row(
             t("label_base_url"),
-            self._register_widget("api_config.base_url", self._styled_line_edit("https://ark.cn-beijing.volces.com/api/v3")),
+            self._register_widget("api_config.base_url", self._styled_line_edit("https://dashscope.aliyuncs.com/compatible-mode/v1")),
             t("general_base_url_desc"),
         )
         card_api.add_row(
             t("label_model_name"),
-            self._register_widget("api_config.model_name", self._styled_line_edit("doubao-seed-1-6-vision-250815")),
+            self._register_widget("api_config.model_name", self._styled_line_edit("qwen3.6-35b-a3b")),
             t("general_model_desc"),
         )
         page.layout().addWidget(card_api)

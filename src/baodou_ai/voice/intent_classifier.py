@@ -117,7 +117,7 @@ class VoiceIntentClassifier:
 
         return OpenAI(
             api_key=api_config.get("api_key", ""),
-            base_url=api_config.get("base_url", "https://ark.cn-beijing.volces.com/api/v3"),
+            base_url=api_config.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
             http_client=httpx.Client(verify=tls_verify),
         )
 

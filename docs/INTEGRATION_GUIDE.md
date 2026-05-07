@@ -76,7 +76,7 @@ pip install -e .
 
 ### 3.1 获取 API 密钥
 
-1. 访问：`https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey`
+1. 访问：`https://bailian.console.aliyun.com/`
 2. 登录/注册账号
 3. 创建 API 密钥
 
@@ -99,7 +99,7 @@ ai = CoViewAI(api_key="你的API密钥")
 {
     "api_config": {
         "api_key": "你的API密钥",
-        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "model_name": "你的模型名称"
     }
 }

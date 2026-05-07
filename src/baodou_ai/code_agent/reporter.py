@@ -40,7 +40,7 @@ class CodeAgentReportGenerator:
             tls_verify = bool(self._config.api_config.get("tls_verify", True))
             client = OpenAI(
                 api_key=api_key,
-                base_url=self._config.api_config.get("base_url", "https://ark.cn-beijing.volces.com/api/v3"),
+                base_url=self._config.api_config.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
                 http_client=httpx.Client(verify=tls_verify),
             )
         except Exception:
@@ -48,7 +48,7 @@ class CodeAgentReportGenerator:
 
         try:
             completion = client.chat.completions.create(
-                model=self._config.api_config.get("model_name", "doubao-seed-1-6-vision-250815"),
+                model=self._config.api_config.get("model_name", "qwen3.6-35b-a3b"),
                 messages=self._build_messages(payload),
                 extra_body=self._build_extra_body(),
             )

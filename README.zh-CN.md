@@ -1,4 +1,4 @@
-<h1 align="center">同窗 2.0 - 基于视觉模型的桌面 AI 助手</h1>
+<h1 align="center">同窗 2.0 - 桌面 AI 伙伴</h1>
 
 <p align="center">
   <a href="README.md">English README</a>
@@ -16,31 +16,35 @@
 </p>
 
 <p align="center">
-  一个运行在你自己电脑上的个人 AI 助手：能看屏幕、理解任务、操作鼠标键盘，也能通过语音和后台 Code Agent 帮你完成工作流。
+  一个会看见、会行动、会与你协作的桌面 AI 伙伴，让电脑成为有生命感的工作空间。
 </p>
 
 ---
 
 ## 为什么是同窗
 
-同窗是一个基于视觉模型控制循环的本地桌面自动化 Agent：
+同窗想做的是一件很直接的事：让电脑不再只是等待指令的工具。它应该能看见你正在看的内容，理解你想完成的任务，并和你一起在真实软件里推进工作。
+
+同窗的核心是一个运行在本地的视觉控制循环：
 
 ```text
 观察屏幕 -> 理解任务 -> 执行一步操作 -> 再次观察
 ```
 
-它不是只能聊天的助手，而是可以真正和你正在使用的软件交互：浏览器、编辑器、文档、网页、桌面应用和代码工作区都可以成为它的操作对象。项目提供悬浮 GUI、命令行 CLI 和 Python API，底层统一走 `ControlLoopRunner`。
+所以它不是只能聊天的助手，而是能真正操作你正在使用的软件：浏览器、编辑器、文档、网页、桌面应用和代码工作区都可以成为它的协作现场。目标是让桌面从被动工具变成一个能回应、能行动、能陪你完成工作流的空间。
 
 ## 核心能力
 
-- 基于截图的视觉桌面控制，支持多屏幕和截图后端回退。
-- 鼠标键盘自动化：点击、拖拽、滚动、快捷键、输入文本、读取页面/文档、打开浏览器。
-- 悬浮助手界面：任务输入、停止控制、运行日志、设置窗口、语言切换、伴随推荐。
-- 语音交互：ASR 识别、TTS 播报、本地唤醒词、录音状态提示。
-- 后台 Code Agent 任务：支持 Codex、Claude、Kimi、Qwen、CodeBuddy 等 provider。
-- macOS / Windows 平台适配。
-- 支持 OpenAI-compatible 模型接口，通过 `base_url`、`api_key`、`model_name` 配置。
-- 可作为 Python 包嵌入，也可以直接通过 CLI 或 GUI 使用。
+| 能力 | 同窗可以做什么 |
+| --- | --- |
+| 看见桌面 | 基于截图观察和视觉推理，支持多屏幕和截图后端回退。 |
+| 操作电脑 | 点击、拖拽、滚动、快捷键、输入文本、读取页面/文档、打开浏览器。 |
+| 与人协作 | 通过悬浮助手提供任务输入、停止控制、运行日志、设置窗口、语言切换和伴随推荐。 |
+| 听见并回应 | 支持 ASR 识别、TTS 播报、本地唤醒词和录音状态提示。 |
+| 后台 Code Agent | 在后台运行代码与自动化任务，支持 Codex、Claude、Kimi、Qwen、CodeBuddy 等 provider。 |
+| 跨平台 | 适配 macOS 和 Windows。 |
+| 模型灵活 | 支持 OpenAI-compatible 模型接口，通过 `base_url`、`api_key`、`model_name` 配置。 |
+| 易于集成 | 可作为 Python 包嵌入，也可以直接通过 CLI 或 GUI 使用。 |
 
 ## 当前状态
 
@@ -97,8 +101,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 {
   "api_config": {
     "api_key": "YOUR_API_KEY",
-    "base_url": "https://ark.cn-beijing.volces.com/api/v3",
-    "model_name": "doubao-seed-1-6-vision-250815"
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "model_name": "qwen3.6-35b-a3b"
   }
 }
 ```
@@ -214,8 +218,8 @@ from baodou_ai import CoViewAI
 
 ai = CoViewAI(
     api_key="YOUR_API_KEY",
-    base_url="https://ark.cn-beijing.volces.com/api/v3",
-    model_name="doubao-seed-1-6-vision-250815",
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    model_name="qwen3.6-35b-a3b",
 )
 
 result = ai.execute(

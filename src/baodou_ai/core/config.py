@@ -16,15 +16,15 @@ from baodou_ai.platform import get_platform_adapter
 DEFAULT_CONFIG = {
     "api_config": {
         "api_key": "",
-        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
-        "model_name": "doubao-seed-1-6-vision-250815",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "model_name": "qwen3.6-35b-a3b",
         "tls_verify": True
     },
     "ai_config": {
         "enable_thinking": False,
         "thinking_type": "disabled",
         "reasoning_effort": "minimal",
-        "vl_high_resolution_images": True
+        "vl_high_resolution_images": False
     },
     "memory_config": {
         "max_text_memory": 80,

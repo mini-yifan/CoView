@@ -86,7 +86,7 @@ class AIClient:
 
         client_signature = (
             api_config.get("api_key", ""),
-            api_config.get("base_url", "https://ark.cn-beijing.volces.com/api/v3"),
+            api_config.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
             tls_verify,
         )
         if self._client is not None and self._client_signature == client_signature:
@@ -401,7 +401,7 @@ class AIClient:
 
     def _create_stream(self, client: OpenAI, messages: List[Dict[str, Any]], extra_body: Dict[str, Any]) -> Any:
         request_kwargs: Dict[str, Any] = {
-            "model": self._config.api_config.get("model_name", "doubao-seed-1-6-vision-250815"),
+            "model": self._config.api_config.get("model_name", "qwen3.6-35b-a3b"),
             "messages": messages,
             "extra_body": extra_body,
             "stream": True,
@@ -485,7 +485,7 @@ class AIClient:
             }
 
         completion = client.chat.completions.create(
-            model=self._config.api_config.get("model_name", "doubao-seed-1-6-vision-250815"),
+            model=self._config.api_config.get("model_name", "qwen3.6-35b-a3b"),
             messages=messages,
             extra_body=extra_body,
         )
