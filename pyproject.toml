@@ -1,0 +1,132 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "baodou-ai"
+version = "2.0.0"
+description = "AI智能电脑控制系统 - 基于视觉模型的自动化操作"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "包豆电脑团队"}
+]
+keywords = [
+    "ai",
+    "automation",
+    "computer-control",
+    "vision-model",
+    "pyqt5"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications :: Qt",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: MacOS X",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Desktop Environment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "PyQt5>=5.15.0",
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+    "mss>=9.0.0",
+    "pyautogui>=0.9.54",
+    "pyperclip>=1.8.0",
+    "openai>=1.0.0",
+    "tiktoken>=0.7.0",
+    "pydantic>=2.0.0",
+    "Pillow>=10.0.0",
+    "pypinyin>=0.54.0",
+    "dashscope>=1.20.0",
+    "sounddevice>=0.4.0",
+    "aec-audio-processing>=1.0.1; python_version >= '3.11'",
+    "sherpa-onnx>=1.12.39",
+    "sentencepiece>=0.2.0",
+    "certifi",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+macos = [
+    "pyobjc>=10.0.0",
+]
+tts = [
+    "dashscope>=1.20.0",
+    "sounddevice>=0.4.0",
+    "certifi",
+]
+voice = [
+    "dashscope>=1.20.0",
+    "sounddevice>=0.4.0",
+    "aec-audio-processing>=1.0.1; python_version >= '3.11'",
+    "sherpa-onnx>=1.12.39",
+    "sentencepiece>=0.2.0",
+    "certifi",
+]
+build = [
+    "pyinstaller>=6.0.0",
+]
+
+[project.scripts]
+baodou-ai = "baodou_ai.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/mini-yifan/baodou_ai2.0_mac"
+Documentation = "https://github.com/mini-yifan/baodou_ai2.0_mac#readme"
+Repository = "https://github.com/mini-yifan/baodou_ai2.0_mac.git"
+Issues = "https://github.com/mini-yifan/baodou_ai2.0_mac/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+baodou_ai = [
+    "ai/prompts/*.txt",
+    "gui/resources/icons/*",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
