@@ -1,7 +1,8 @@
 <h1 align="center">CoView - Desktop AI Companion</h1>
 
 <p align="center">
-  <a href="README.zh-CN.md">中文文档</a>
+  <a href="README.zh-CN.md">中文文档</a> ·
+  <a href="docs/en/README.md">Full Documentation</a>
 </p>
 
 <p align="center">
@@ -25,49 +26,55 @@
 
 CoView is built for a simple idea: your computer should not just wait for commands. It should see what you see, understand what you are trying to do, and work with you across the apps already on your screen.
 
-At its core, CoView is a local desktop AI companion powered by a visual control loop:
+At its core, CoView is powered by a local visual control loop:
 
 ```text
 Observe screen -> reason about the task -> execute one action -> observe again
 ```
 
-That means CoView is not limited to chat. It can operate browsers, editors, documents, websites, desktop apps, and coding workspaces through mouse, keyboard, voice, and background code-agent workflows. The goal is to make the desktop feel less like a passive tool and more like a responsive workspace that can collaborate with you.
+That means CoView is not limited to chat. It can operate browsers, editors, documents, websites, desktop apps, and coding workspaces through mouse, keyboard, voice, and background Code Agent workflows.
 
 ## Highlights
 
 | Capability | What CoView Does |
 | --- | --- |
-| 👀 See | Observes your desktop through screenshots, with visual reasoning and screenshot backend fallback. |
-| 🖥️ Multi-Screen Control | Understands and operates across multiple displays instead of being limited to one screen. |
-| 🖱️ Act | Operates real software with clicks, drags, scrolling, hotkeys, text input, browser opening, and page/document reading. |
-| 🤝 Collaborate | Works from a floating assistant UI with task input, stop control, runtime logs, settings, and companion suggestions. |
-| 🎙️ Listen & Respond | Supports ASR, TTS, local wake-word detection, and visual recording indicators. |
-| 🌐 Chinese & English | Provides bilingual interface text and workflows for Chinese and English users. |
-| 🧑‍💻 Background Code Agent | Runs coding and automation jobs in the background through providers such as Codex, Claude, Kimi, Qwen, and CodeBuddy. |
-| 🧩 Cross Platform | Provides adapters for macOS and Windows. |
-| 🔌 Model Flexible | Uses OpenAI-compatible model endpoints through `base_url`, `api_key`, and `model_name`. |
-| 🛠️ Developer Ready | Ships as a testable Python package with CLI and embeddable API. |
+| 👀 See | Observes your desktop through screenshots and visual reasoning. |
+| 🖥️ Multi-Screen Control | Understands and operates across multiple displays. |
+| 🖱️ Act | Clicks, drags, scrolls, uses hotkeys, inputs text, and reads pages or documents. |
+| 🤝 Collaborate | Works from a floating assistant UI with task input, stop control, logs, settings, and suggestions. |
+| 🎙️ Listen & Respond | Supports ASR, TTS, local wake-word detection, and voice indicators. |
+| 🧑‍💻 Background Code Agent | Runs coding and automation jobs asynchronously through multiple providers. |
+| 🌐 Chinese & English | Provides bilingual product flows and documentation. |
+| 🔌 Model Flexible | Uses OpenAI-compatible endpoints through `base_url`, `api_key`, and `model_name`. |
 
-## Status
+## How CoView Works
 
-CoView 2.0 is in beta. The architecture is already split into GUI, platform, voice, code-agent, model, and runner modules, but some areas are still moving quickly. Expect active iteration, especially around model adapters, UI polish, and packaged releases.
+<p align="center">
+  <img src="flow/project_flow.png" alt="CoView runtime flow" width="900">
+</p>
+
+## Voice Interaction
+
+<p align="center">
+  <img src="flow/voice_flow.png" alt="CoView voice interaction flow" width="900">
+</p>
 
 ## Quick Start
 
 Requirements:
 
-- Python 3.10 or newer. Python 3.11/3.12 are recommended for the smoothest dependency resolution.
+- Python 3.10 or newer. Python 3.11/3.12 are recommended.
 - macOS or Windows.
 - A visual model endpoint compatible with the OpenAI-style API shape used by this project.
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 | macOS / Linux | Windows PowerShell |
 | --- | --- |
 | `git clone https://github.com/mini-yifan/CoView.git` | `git clone https://github.com/mini-yifan/CoView.git` |
 | `cd CoView` | `cd CoView` |
 
-### 2. Create and activate a virtual environment
+### 2. Create and Activate a Virtual Environment
 
 | macOS / Linux | Windows PowerShell |
 | --- | --- |
@@ -87,17 +94,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 | `python3 -m pip install -U pip` | `py -m pip install -U pip` |
 | `python3 -m pip install -e ".[macos,voice,tts]"` | `py -m pip install -e ".[voice,tts]"` |
 
-For development tools:
-
-| macOS | Windows |
-| --- | --- |
-| `python3 -m pip install -e ".[macos,voice,tts,dev]"` | `py -m pip install -e ".[voice,tts,dev]"` |
-
-### 4. Configure your model
+### 4. Configure Your Model
 
 CoView reads `config.json` from the repository root and merges it with defaults from `src/baodou_ai/core/config.py`.
-
-Edit these fields first:
 
 ```json
 {
@@ -109,13 +108,9 @@ Edit these fields first:
 }
 ```
 
-Notes:
+Do not commit real API keys to a public repository.
 
-- Do not commit real API keys to a public repository.
-- Any OpenAI-compatible endpoint can be used if it supports the visual model behavior required by the agent.
-- Voice features can use separate keys under `voice_interaction_config.asr_api_key` and `tts_config.api_key`.
-
-### 5. Run the app
+### 5. Run the App
 
 | Goal | macOS | Windows |
 | --- | --- | --- |
@@ -124,26 +119,12 @@ Notes:
 | Limit task steps | `coview-cli "Summarize the current page" --max-iterations 20` | `coview-cli "Open Calculator" --max-iterations 20` |
 | Stop a CLI task | `Ctrl+C` | `Ctrl+C` |
 
-## macOS vs Windows Differences
-
-| Topic | macOS | Windows |
-| --- | --- | --- |
-| Python command | Usually `python3` | Usually `py` or `python` |
-| Virtualenv activation | `source .venv/bin/activate` | `.venv\Scripts\Activate.ps1` |
-| Path style | `/Users/name/project` | `C:\Users\name\project` |
-| Copy/paste hotkeys | `Command+C`, `Command+V` | `Ctrl+C`, `Ctrl+V` |
-| App automation permission | Enable Accessibility, Screen Recording, and Microphone in System Settings | Run normally for standard apps; use an elevated terminal only when controlling elevated apps |
-| Optional platform extra | `.[macos]` installs PyObjC support | No `macos` extra needed |
-| GUI backend | PyQt5 + macOS platform adapter | PyQt5 + Windows platform adapter |
-
-When writing tasks, natural language is usually better than naming platform-specific hotkeys. For example, say `copy the selected text` instead of `press Command+C`. If you do need to mention a shortcut, use the correct one for your system.
-
 ## First Interaction in 60 Seconds
 
-1. Start the GUI with `coview` on macOS or `coview` on Windows.
+1. Start the GUI with `coview`.
 2. Open the floating assistant settings and enter your model API key, base URL, and model name.
 3. Click the floating assistant input, type a task, and press Enter.
-4. Watch the assistant report what it is doing. It will observe the screen, choose one action, execute it, then continue until the task is done.
+4. Watch CoView observe the screen, choose an action, execute it, and observe again.
 5. Use the stop button if the task is wrong, too broad, or interacting with the wrong window.
 
 Good first tasks:
@@ -156,190 +137,21 @@ Read the visible document and list the action items.
 Create a background code-agent task to inspect this repository's test structure.
 ```
 
-Voice workflow:
+## Documentation
 
-- Enable voice input in Settings.
-- Configure `voice_interaction_config.asr_api_key` for ASR and `tts_config.api_key` for speech output.
-- Download the local wake-word model if you want hands-free wakeup.
-- Default wake words are `你好彤彤` and `hello Lulu`; they can be changed under `wake_word_config.phrases`.
-- Say `exit program`, `quit app`, or similar `close/exit/quit program/app` commands to quit CoView by voice. The Chinese command is `退出程序`.
-- WebRTC echo cancellation depends on `aec-audio-processing`, which is only installed on Python 3.11+ by the current project markers.
-
-Default interaction shortcuts:
-
-| Action | macOS | Windows |
-| --- | --- | --- |
-| Show / focus CoView | `Command+Shift+Space` | `Ctrl+Alt+Space` |
-| Collapse the floating panel | `Command+Shift+Y` | `Ctrl+Alt+Enter` |
-| Submit the typed task | `Enter` | `Enter` |
-| Stop the current task | Stop button or show/focus shortcut while running | Stop button or show/focus shortcut while running |
-
-## Wake-Word Model
-
-Local wake-word detection expects this model directory by default:
-
-```text
-models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20
-```
-
-Download it with:
-
-| macOS | Windows |
+| Guide | Link |
 | --- | --- |
-| `python3 scripts/download_wake_word_model.py` | `py scripts\download_wake_word_model.py` |
-
-Useful options:
-
-```bash
-python3 scripts/download_wake_word_model.py --force
-python3 scripts/download_wake_word_model.py --source github
-python3 scripts/download_wake_word_model.py --url "https://your-cdn.example.com/model.tar.bz2"
-```
-
-Windows equivalents:
-
-```powershell
-py scripts\download_wake_word_model.py --force
-py scripts\download_wake_word_model.py --source github
-py scripts\download_wake_word_model.py --url "https://your-cdn.example.com/model.tar.bz2"
-```
-
-## CLI Usage
-
-```bash
-coview-cli "Open the browser and search CoView" --api-key YOUR_API_KEY
-coview-cli "Close the active window" --max-iterations 10
-coview-cli "Read the current page and summarize it" --base-url https://api.example.com
-```
-
-Windows:
-
-```powershell
-coview-cli "Open Notepad and type Hello" --api-key YOUR_API_KEY
-coview-cli "Close the active window" --max-iterations 10
-coview-cli "Read the current page and summarize it" --base-url https://api.example.com
-```
-
-## Python API
-
-```python
-from baodou_ai import CoViewAI
-
-ai = CoViewAI(
-    api_key="YOUR_API_KEY",
-    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    model_name="qwen3.6-35b-a3b",
-)
-
-result = ai.execute(
-    "Open the browser, search for today's AI news, and summarize the top results.",
-    max_iterations=30,
-)
-
-print(result)
-```
-
-With progress callbacks:
-
-```python
-from baodou_ai import CoViewAI
-
-ai = CoViewAI(api_key="YOUR_API_KEY")
-
-def on_iteration(index, info):
-    print(f"[step {index + 1}] {info.get('thinking', '')}")
-
-result = ai.execute(
-    "Open Calculator and compute 128 * 46.",
-    on_iteration=on_iteration,
-)
-```
-
-## Project Structure
-
-```text
-CoView/
-├── src/baodou_ai/
-│   ├── __main__.py              # Floating GUI entry
-│   ├── api.py                   # Embeddable Python API
-│   ├── cli.py                   # Terminal entry
-│   ├── agent/                   # Tool schema, protocol, registry, executor
-│   ├── ai/                      # Model client, prompts, parser, memory
-│   ├── code_agent/              # Background coding job providers
-│   ├── core/                    # Runner, screenshots, config, automation
-│   ├── gui/                     # Floating ball, settings, logs, task UI
-│   ├── platform/                # macOS and Windows adapters
-│   ├── voice/                   # ASR, VAD, wake word, intent classification
-│   └── tts/                     # Speech output
-├── docs/                        # Architecture and integration notes
-├── examples/                    # API examples
-├── scripts/                     # Helper and acceptance scripts
-├── tests/                       # Automated tests
-├── config.json                  # Local runtime config
-├── pyproject.toml
-└── README.md
-```
-
-## Development
-
-Run tests:
-
-| macOS | Windows |
-| --- | --- |
-| `python3 -m pytest tests/` | `py -m pytest tests/` |
-| `python3 -m pytest tests/test_runner.py -q` | `py -m pytest tests/test_runner.py -q` |
-| `python3 scripts/run_gui_acceptance.py` | `py scripts\run_gui_acceptance.py` |
-
-Format and check:
-
-| macOS | Windows |
-| --- | --- |
-| `black src/baodou_ai tests` | `black src\baodou_ai tests` |
-| `flake8 src/baodou_ai tests` | `flake8 src\baodou_ai tests` |
-| `mypy src/baodou_ai` | `mypy src\baodou_ai` |
-
-## Agent Protocol
-
-The model response uses one primary branch per turn:
-
-- A tool branch such as `click`, `input_text`, `hotkey`, `open_in_browser`, or `read_current_document`.
-- Or `page_loading`.
-- Or `respond`.
-
-Optional fields such as `report` and `remember` can be attached. The runner validates the branch, executes exactly one main action, captures the next observation, and continues.
-
-Example:
-
-```json
-{
-  "thinking": "The search field is visible, so I can enter the query directly.",
-  "report": "I am searching from the browser input field.",
-  "input_text": {
-    "screen_index": 0,
-    "position": [520, 150],
-    "text": "weather in Shanghai",
-    "replace": true,
-    "submit": true
-  }
-}
-```
-
-## Safety Notes
-
-CoView controls real desktop input. Start with low-risk tasks, keep sensitive apps closed during testing, and watch the first few runs. On macOS, grant only the permissions you understand. On Windows, avoid running the assistant as administrator unless you specifically need to control administrator-level windows.
-
-## Contributing
-
-Contributions are welcome. Good first areas:
-
-- Windows and macOS regression testing.
-- Model adapter improvements.
-- Safer task interruption and recovery.
-- More examples and bilingual documentation.
-- Packaging, signing, and release automation.
-
-Please keep changes focused, add tests for behavior changes, and avoid committing private keys or local runtime files.
+| Full documentation index | [docs/en/README.md](docs/en/README.md) |
+| Product overview | [docs/en/product-overview.md](docs/en/product-overview.md) |
+| Setup and configuration | [docs/en/setup-configuration.md](docs/en/setup-configuration.md) |
+| Voice interaction | [docs/en/voice-interaction.md](docs/en/voice-interaction.md) |
+| CLI and Python API | [docs/en/usage-cli-api.md](docs/en/usage-cli-api.md) |
+| Architecture | [docs/en/architecture.md](docs/en/architecture.md) |
+| Agent protocol | [docs/en/agent-protocol.md](docs/en/agent-protocol.md) |
+| Development | [docs/en/development.md](docs/en/development.md) |
+| Safety and contributing | [docs/en/safety-contributing.md](docs/en/safety-contributing.md) |
 
 ## License
 
 CoView is released under the [MIT License](LICENSE).
+
