@@ -36,16 +36,16 @@
 
 ## 核心能力
 
-| 能力 | 同窗可以做什么 |
-| --- | --- |
-| 👀 看见桌面 | 基于截图观察和视觉推理理解当前屏幕。 |
-| 🖥️ 多屏幕操作 | 理解并操作多个显示器上的窗口和内容。 |
-| 🖱️ 操作电脑 | 点击、拖拽、滚动、快捷键、输入文本、读取网页或文档。 |
-| 🤝 与人协作 | 通过悬浮助手提供任务输入、停止控制、运行日志、设置和伴随推荐。 |
-| 🎙️ 听见并回应 | 支持 ASR、TTS、本地唤醒词和语音状态提示。 |
-| 🧑‍💻 后台 Code Agent | 在后台异步运行代码与自动化任务，支持多个 provider。 |
-| 🌐 中英文支持 | 提供中英文产品流程与说明文档。 |
-| 🔌 模型灵活 | 支持 OpenAI-compatible 模型接口，通过 `base_url`、`api_key`、`model_name` 配置。 |
+| 能力                   | 同窗可以做什么                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| 👀 看见桌面            | 基于截图观察和视觉推理理解当前屏幕。                                                   |
+| 🖥️ 多屏幕操作        | 理解并操作多个显示器上的窗口和内容并快速实现GUI操作。                                  |
+| 🖱️ 操作电脑          | 点击、拖拽、滚动、快捷键、输入文本、读取网页或文档。                                   |
+| 🤝 与人协作            | 通过悬浮助手提供任务输入、停止控制、运行日志、设置和伴随推荐。                         |
+| 🎙️ 听见并回应        | 支持 ASR、TTS、本地唤醒词和语音状态提示。                                              |
+| 🧑‍💻 后台 Code Agent | 在后台异步运行代码与自动化任务，支持codex、claude code、 kimi code等。                 |
+| 🌐 中英文支持          | 提供中英文产品流程与说明文档。                                                         |
+| 🔌 模型灵活            | 支持 OpenAI-compatible 模型接口，通过 `base_url`、`api_key`、`model_name` 配置。 |
 
 ## 同窗如何工作
 
@@ -71,16 +71,16 @@
 
 ### 1. 克隆仓库
 
-| macOS / Linux | Windows PowerShell |
-| --- | --- |
+| macOS / Linux                                          | Windows PowerShell                                     |
+| ------------------------------------------------------ | ------------------------------------------------------ |
 | `git clone https://github.com/mini-yifan/CoView.git` | `git clone https://github.com/mini-yifan/CoView.git` |
-| `cd CoView` | `cd CoView` |
+| `cd CoView`                                          | `cd CoView`                                          |
 
 ### 2. 创建并激活虚拟环境
 
-| macOS / Linux | Windows PowerShell |
-| --- | --- |
-| `python3 -m venv .venv` | `py -3 -m venv .venv` |
+| macOS / Linux                 | Windows PowerShell             |
+| ----------------------------- | ------------------------------ |
+| `python3 -m venv .venv`     | `py -3 -m venv .venv`        |
 | `source .venv/bin/activate` | `.venv\Scripts\Activate.ps1` |
 
 如果 PowerShell 阻止激活虚拟环境，可以在当前 PowerShell 窗口执行：
@@ -91,9 +91,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ### 3. 安装项目
 
-| macOS | Windows |
-| --- | --- |
-| `python3 -m pip install -U pip` | `py -m pip install -U pip` |
+| macOS                                              | Windows                                 |
+| -------------------------------------------------- | --------------------------------------- |
+| `python3 -m pip install -U pip`                  | `py -m pip install -U pip`            |
 | `python3 -m pip install -e ".[macos,voice,tts]"` | `py -m pip install -e ".[voice,tts]"` |
 
 ### 4. 配置模型
@@ -114,12 +114,12 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ### 5. 启动
 
-| 目标 | macOS | Windows |
-| --- | --- | --- |
-| 启动悬浮 GUI | `coview` | `coview` |
-| 执行一个 CLI 任务 | `coview-cli "打开浏览器并搜索上海天气"` | `coview-cli "打开记事本并输入 Hello"` |
-| 限制最大执行步数 | `coview-cli "总结当前页面" --max-iterations 20` | `coview-cli "打开计算器" --max-iterations 20` |
-| 停止 CLI 任务 | `Ctrl+C` | `Ctrl+C` |
+| 目标              | macOS                                             | Windows                                         |
+| ----------------- | ------------------------------------------------- | ----------------------------------------------- |
+| 启动悬浮 GUI      | `coview`                                        | `coview`                                      |
+| 执行一个 CLI 任务 | `coview-cli "打开浏览器并搜索上海天气"`         | `coview-cli "打开记事本并输入 Hello"`         |
+| 限制最大执行步数  | `coview-cli "总结当前页面" --max-iterations 20` | `coview-cli "打开计算器" --max-iterations 20` |
+| 停止 CLI 任务     | `Ctrl+C`                                        | `Ctrl+C`                                      |
 
 ## 60 秒上手交互
 
@@ -141,17 +141,17 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ## 项目说明书
 
-| 文档 | 链接 |
-| --- | --- |
-| 完整说明书索引 | [docs/zh-CN/README.md](docs/zh-CN/README.md) |
-| 产品概览 | [docs/zh-CN/product-overview.md](docs/zh-CN/product-overview.md) |
-| 安装与配置 | [docs/zh-CN/setup-configuration.md](docs/zh-CN/setup-configuration.md) |
-| 语音交互 | [docs/zh-CN/voice-interaction.md](docs/zh-CN/voice-interaction.md) |
-| CLI 与 Python API | [docs/zh-CN/usage-cli-api.md](docs/zh-CN/usage-cli-api.md) |
-| 架构说明 | [docs/zh-CN/architecture.md](docs/zh-CN/architecture.md) |
-| Agent 协议 | [docs/zh-CN/agent-protocol.md](docs/zh-CN/agent-protocol.md) |
-| 开发指南 | [docs/zh-CN/development.md](docs/zh-CN/development.md) |
-| 安全与贡献 | [docs/zh-CN/safety-contributing.md](docs/zh-CN/safety-contributing.md) |
+| 文档              | 链接                                                                |
+| ----------------- | ------------------------------------------------------------------- |
+| 完整说明书索引    | [docs/zh-CN/README.md](docs/zh-CN/README.md)                           |
+| 产品概览          | [docs/zh-CN/product-overview.md](docs/zh-CN/product-overview.md)       |
+| 安装与配置        | [docs/zh-CN/setup-configuration.md](docs/zh-CN/setup-configuration.md) |
+| 语音交互          | [docs/zh-CN/voice-interaction.md](docs/zh-CN/voice-interaction.md)     |
+| CLI 与 Python API | [docs/zh-CN/usage-cli-api.md](docs/zh-CN/usage-cli-api.md)             |
+| 架构说明          | [docs/zh-CN/architecture.md](docs/zh-CN/architecture.md)               |
+| Agent 协议        | [docs/zh-CN/agent-protocol.md](docs/zh-CN/agent-protocol.md)           |
+| 开发指南          | [docs/zh-CN/development.md](docs/zh-CN/development.md)                 |
+| 安全与贡献        | [docs/zh-CN/safety-contributing.md](docs/zh-CN/safety-contributing.md) |
 
 ## License
 
