@@ -14,25 +14,25 @@ class UnsupportedPlatformError(RuntimeError):
 
 class PlatformAdapter(ABC):
     """平台适配器基类"""
-    
+
     @abstractmethod
     def get_resource_path(self, relative_path: str) -> Optional[str]:
         """
         获取资源文件路径
-        
+
         Args:
             relative_path: 相对路径
-        
+
         Returns:
             绝对路径，如果不存在返回None
         """
         pass
-    
+
     @abstractmethod
     def setup_window(self, window) -> None:
         """
         设置窗口属性
-        
+
         Args:
             window: 窗口对象
         """
@@ -53,82 +53,82 @@ class PlatformAdapter(ABC):
     def clear_overlay_region(self, window) -> bool:
         """清除平台原生裁剪区域。默认实现为 no-op。"""
         return False
-    
+
     @abstractmethod
     def prevent_screenshot(self, window) -> bool:
         """
         防止窗口被截图
-        
+
         Args:
             window: 窗口对象
-        
+
         Returns:
             是否设置成功
         """
         pass
-    
+
     @abstractmethod
     def allow_screenshot(self, window) -> bool:
         """
         允许窗口被截图
-        
+
         Args:
             window: 窗口对象
-        
+
         Returns:
             是否设置成功
         """
         pass
-    
+
     @abstractmethod
     def translate_hotkey_keys(self, keys: List[str]) -> List[str]:
         """
         翻译快捷键
-        
+
         Args:
             keys: 快捷键列表
-        
+
         Returns:
             翻译后的快捷键列表
         """
         pass
-    
+
     @abstractmethod
     def get_hotkey_modifier(self) -> str:
         """
         获取快捷键修饰符
-        
+
         Returns:
             修饰键名称 (ctrl/command/win)
         """
         pass
-    
+
     @abstractmethod
     def is_app_bundle(self) -> bool:
         """
         检测是否在打包的应用程序中运行
-        
+
         Returns:
             是否在打包的应用程序中
         """
         pass
-    
+
     @abstractmethod
     def enter_transparent_mode(self, window) -> bool:
         """
         进入透明穿透模式
-        
+
         窗口变为完全透明且鼠标可穿透，用于执行自动化操作时
         不干扰用户对其他软件的操作。
-        
+
         Args:
             window: 窗口对象
-        
+
         Returns:
             是否设置成功
         """
         pass
-    
+
     @abstractmethod
     def exit_transparent_mode(self, window) -> bool:
         """
@@ -136,15 +136,15 @@ class PlatformAdapter(ABC):
 
         窗口恢复不透明且鼠标不可穿透，恢复正常的窗口交互。
         此操作不会抢占焦点。
-        
+
         Args:
             window: 窗口对象
-        
+
         Returns:
             是否设置成功
         """
         pass
-    
+
     @abstractmethod
     def get_scaling_factor(self) -> float:
         """
@@ -157,7 +157,7 @@ class PlatformAdapter(ABC):
             缩放因子，例如 Retina 屏幕返回 2.0，普通屏幕返回 1.0
         """
         pass
-    
+
     @abstractmethod
     def get_logical_screen_size(self) -> tuple:
         """
@@ -169,22 +169,22 @@ class PlatformAdapter(ABC):
             (width, height) 逻辑屏幕尺寸
         """
         pass
-    
+
     @abstractmethod
     def get_screen_count(self) -> int:
         """
         获取屏幕数量
-        
+
         Returns:
             屏幕数量
         """
         pass
-    
+
     @abstractmethod
     def get_all_screens_info(self) -> List[Dict[str, Any]]:
         """
         获取所有屏幕信息
-        
+
         Returns:
             屏幕信息列表，每个元素包含:
             - index: 屏幕索引
@@ -215,15 +215,15 @@ class PlatformAdapter(ABC):
             - capture_height
         """
         pass
-    
+
     @abstractmethod
     def get_screen_rect(self, screen_index: int) -> Tuple[int, int, int, int]:
         """
         获取指定屏幕的矩形区域
-        
+
         Args:
             screen_index: 屏幕索引
-        
+
         Returns:
             (x, y, width, height) 屏幕在虚拟桌面中的位置和尺寸
         """
@@ -309,6 +309,16 @@ class PlatformAdapter(ABC):
     def key_up(self, key: str) -> None:
         """
         释放键盘按键。
+
+        Args:
+            key: 按键名称
+        """
+        pass
+
+    @abstractmethod
+    def key_press(self, key: str) -> None:
+        """
+        按下并释放键盘按键。
 
         Args:
             key: 按键名称
@@ -410,7 +420,9 @@ class PlatformAdapter(ABC):
         pass
 
     @abstractmethod
-    def open_in_browser(self, url: Optional[str] = None, query: Optional[str] = None) -> Dict[str, Any]:
+    def open_in_browser(
+        self, url: Optional[str] = None, query: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         使用系统默认浏览器打开网址或搜索文本。
 

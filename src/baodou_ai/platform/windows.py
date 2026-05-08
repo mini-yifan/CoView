@@ -25,7 +25,6 @@ from baodou_ai.platform.common import (
     score_name_match,
 )
 
-
 GWL_EXSTYLE = -20
 WS_EX_LAYERED = 0x80000
 WS_EX_TRANSPARENT = 0x20
@@ -63,7 +62,7 @@ class _SHFILEOPSTRUCTW(ctypes.Structure):
 
 class WindowsAdapter(PlatformAdapter):
     """Windows平台适配器"""
-    
+
     def __init__(self):
         self._user32 = ctypes.windll.user32
         self._kernel32 = ctypes.windll.kernel32
@@ -73,22 +72,22 @@ class WindowsAdapter(PlatformAdapter):
         self._is_transparent_mode = False
         self._original_opacity = 0.95
         self._app_catalog_cache: Optional[List[Dict[str, Any]]] = None
-    
+
     def get_resource_path(self, relative_path: str) -> Optional[str]:
         """获取资源文件路径"""
         if os.path.isabs(relative_path):
             return relative_path
-        
+
         if os.path.exists(relative_path):
             return os.path.abspath(relative_path)
-        
+
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         full_path = os.path.join(base_dir, relative_path)
         if os.path.exists(full_path):
             return full_path
-        
+
         return None
-    
+
     def setup_window(self, window) -> None:
         """设置普通窗口属性。
 
@@ -122,7 +121,7 @@ class WindowsAdapter(PlatformAdapter):
 
     def clear_overlay_region(self, window) -> bool:
         return self._overlay_native.clear_region(window)
-    
+
     def prevent_screenshot(self, window) -> bool:
         """防止窗口被截图"""
         try:
@@ -144,7 +143,7 @@ class WindowsAdapter(PlatformAdapter):
         except Exception as e:
             print(f"恢复窗口截图时出错: {e}")
             return False
-    
+
     def translate_hotkey_keys(self, keys: List[str]) -> List[str]:
         """翻译快捷键"""
         translated: List[str] = []
@@ -158,19 +157,19 @@ class WindowsAdapter(PlatformAdapter):
             else:
                 translated.append(key)
         return translated
-    
+
     def get_hotkey_modifier(self) -> str:
         """获取快捷键修饰符"""
         return "ctrl"
-    
+
     def is_app_bundle(self) -> bool:
         """检测是否在打包的应用程序中运行"""
         return False
-    
+
     def enter_transparent_mode(self, window) -> bool:
         """
         进入透明穿透模式
-        
+
         窗口变为完全透明且鼠标可穿透
         """
         try:
@@ -186,15 +185,17 @@ class WindowsAdapter(PlatformAdapter):
         except Exception as e:
             print(f"进入透明穿透模式时出错: {e}")
             return False
-    
+
     def exit_transparent_mode(self, window) -> bool:
         """
         退出透明穿透模式
-        
+
         窗口恢复不透明且鼠标不可穿透，不抢占焦点
         """
         try:
-            restore_opacity = self._overlay_native.restore_opacity(window, default=self._original_opacity)
+            restore_opacity = self._overlay_native.restore_opacity(
+                window, default=self._original_opacity
+            )
             window.setAttribute(Qt.WA_TransparentForMouseEvents, False)
             window.setWindowOpacity(restore_opacity)
             self._overlay_native.set_click_through(window, False)
@@ -204,7 +205,7 @@ class WindowsAdapter(PlatformAdapter):
         except Exception as e:
             print(f"退出透明穿透模式时出错: {e}")
             return False
-    
+
     def get_scaling_factor(self) -> float:
         """
         获取屏幕缩放因子（DPI缩放）
@@ -234,9 +235,9 @@ class WindowsAdapter(PlatformAdapter):
             return float(dpi) / 96.0 if dpi else 1.0
         except Exception as e:
             print(f"获取缩放因子时出错: {e}")
-        
+
         return 1.0
-    
+
     def get_logical_screen_size(self) -> tuple:
         """
         获取逻辑屏幕尺寸
@@ -247,13 +248,14 @@ class WindowsAdapter(PlatformAdapter):
             (width, height) 逻辑屏幕尺寸
         """
         import pyautogui
+
         size = pyautogui.size()
         return (size.width, size.height)
-    
+
     def get_screen_count(self) -> int:
         """
         获取屏幕数量
-        
+
         Returns:
             屏幕数量
         """
@@ -262,75 +264,73 @@ class WindowsAdapter(PlatformAdapter):
         except Exception as e:
             print(f"获取屏幕数量时出错: {e}")
             return 1
-    
+
     def get_all_screens_info(self) -> List[Dict[str, Any]]:
         """
         获取所有屏幕信息
-        
+
         Returns:
             屏幕信息列表
         """
         try:
             monitors = []
-            
+
             class RECT(ctypes.Structure):
                 _fields_ = [
-                    ('left', ctypes.c_long),
-                    ('top', ctypes.c_long),
-                    ('right', ctypes.c_long),
-                    ('bottom', ctypes.c_long)
+                    ("left", ctypes.c_long),
+                    ("top", ctypes.c_long),
+                    ("right", ctypes.c_long),
+                    ("bottom", ctypes.c_long),
                 ]
-            
+
             class MONITORINFOEX(ctypes.Structure):
                 _fields_ = [
-                    ('cbSize', ctypes.c_ulong),
-                    ('rcMonitor', RECT),
-                    ('rcWork', RECT),
-                    ('dwFlags', ctypes.c_ulong),
-                    ('szDevice', ctypes.c_wchar * 32)
+                    ("cbSize", ctypes.c_ulong),
+                    ("rcMonitor", RECT),
+                    ("rcWork", RECT),
+                    ("dwFlags", ctypes.c_ulong),
+                    ("szDevice", ctypes.c_wchar * 32),
                 ]
-            
+
             def callback(hmonitor, hdc, rect, data):
                 monitor_info = MONITORINFOEX()
                 monitor_info.cbSize = ctypes.sizeof(MONITORINFOEX)
                 self._user32.GetMonitorInfoW(hmonitor, ctypes.byref(monitor_info))
-                monitors.append({
-                    'handle': hmonitor,
-                    'rect': monitor_info.rcMonitor,
-                    'device_name': monitor_info.szDevice,
-                    'is_primary': (monitor_info.dwFlags & MONITORINFOF_PRIMARY) != 0
-                })
+                monitors.append(
+                    {
+                        "handle": hmonitor,
+                        "rect": monitor_info.rcMonitor,
+                        "device_name": monitor_info.szDevice,
+                        "is_primary": (monitor_info.dwFlags & MONITORINFOF_PRIMARY) != 0,
+                    }
+                )
                 return 1
-            
+
             MonitorEnumProc = ctypes.WINFUNCTYPE(
-                ctypes.c_int,
-                ctypes.c_ulong,
-                ctypes.c_ulong,
-                ctypes.POINTER(RECT),
-                ctypes.c_double
+                ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(RECT), ctypes.c_double
             )
-            
-            self._user32.EnumDisplayMonitors(
-                None, None, MonitorEnumProc(callback), 0
-            )
-            
+
+            self._user32.EnumDisplayMonitors(None, None, MonitorEnumProc(callback), 0)
+
             result = []
             for i, mon in enumerate(monitors):
-                rect = mon['rect']
-                result.append({
-                    'index': i,
-                    'device_name': mon.get('device_name', ''),
-                    'x': rect.left,
-                    'y': rect.top,
-                    'width': rect.right - rect.left,
-                    'height': rect.bottom - rect.top,
-                    'is_primary': mon['is_primary']
-                })
-            
+                rect = mon["rect"]
+                result.append(
+                    {
+                        "index": i,
+                        "device_name": mon.get("device_name", ""),
+                        "x": rect.left,
+                        "y": rect.top,
+                        "width": rect.right - rect.left,
+                        "height": rect.bottom - rect.top,
+                        "is_primary": mon["is_primary"],
+                    }
+                )
+
             return result
         except Exception as e:
             print(f"获取所有屏幕信息时出错: {e}")
-            return [{'index': 0, 'x': 0, 'y': 0, 'width': 1920, 'height': 1080, 'is_primary': True}]
+            return [{"index": 0, "x": 0, "y": 0, "width": 1920, "height": 1080, "is_primary": True}]
 
     def _get_current_display_settings(self) -> Dict[str, Dict[str, int]]:
         """Return current display mode rectangles keyed by Win32 device name."""
@@ -391,7 +391,9 @@ class WindowsAdapter(PlatformAdapter):
             while True:
                 display_device = DISPLAY_DEVICEW()
                 display_device.cb = ctypes.sizeof(display_device)
-                if not self._user32.EnumDisplayDevicesW(None, device_index, ctypes.byref(display_device), 0):
+                if not self._user32.EnumDisplayDevicesW(
+                    None, device_index, ctypes.byref(display_device), 0
+                ):
                     break
                 device_index += 1
                 if not (int(display_device.StateFlags) & DISPLAY_DEVICE_ACTIVE):
@@ -442,35 +444,37 @@ class WindowsAdapter(PlatformAdapter):
             capture_y = int(capture_rect.get("y", logical_y))
             capture_width = int(capture_rect.get("width", logical_width))
             capture_height = int(capture_rect.get("height", logical_height))
-            capture_screens.append({
-                "index": index,
-                "is_primary": bool(screen.get("is_primary")),
-                "logical_x": logical_x,
-                "logical_y": logical_y,
-                "logical_width": logical_width,
-                "logical_height": logical_height,
-                "capture_x": capture_x,
-                "capture_y": capture_y,
-                "capture_width": capture_width,
-                "capture_height": capture_height,
-            })
+            capture_screens.append(
+                {
+                    "index": index,
+                    "is_primary": bool(screen.get("is_primary")),
+                    "logical_x": logical_x,
+                    "logical_y": logical_y,
+                    "logical_width": logical_width,
+                    "logical_height": logical_height,
+                    "capture_x": capture_x,
+                    "capture_y": capture_y,
+                    "capture_width": capture_width,
+                    "capture_height": capture_height,
+                }
+            )
 
         return capture_screens
 
     def get_screen_rect(self, screen_index: int) -> Tuple[int, int, int, int]:
         """
         获取指定屏幕的矩形区域
-        
+
         Args:
             screen_index: 屏幕索引
-        
+
         Returns:
             (x, y, width, height) 屏幕在虚拟桌面中的位置和尺寸
         """
         screens_info = self.get_all_screens_info()
         if 0 <= screen_index < len(screens_info):
             info = screens_info[screen_index]
-            return (info['x'], info['y'], info['width'], info['height'])
+            return (info["x"], info["y"], info["width"], info["height"])
         return (0, 0, 1920, 1080)
 
     def move_cursor(self, x: float, y: float, duration: float = 0.0) -> None:
@@ -519,6 +523,10 @@ class WindowsAdapter(PlatformAdapter):
         """释放键盘按键。"""
         pyautogui.keyUp(key)
 
+    def key_press(self, key: str) -> None:
+        """按下并释放键盘按键。"""
+        pyautogui.press(key)
+
     @staticmethod
     def _build_launch_result(
         matched: bool,
@@ -563,11 +571,13 @@ class WindowsAdapter(PlatformAdapter):
                             continue
 
                         app_name = os.path.splitext(os.path.basename(app_path))[0]
-                        results.append({
-                            "name": app_name,
-                            "path": app_path,
-                            "aliases": [subkey_name],
-                        })
+                        results.append(
+                            {
+                                "name": app_name,
+                                "path": app_path,
+                                "aliases": [subkey_name],
+                            }
+                        )
             except OSError:
                 continue
 
@@ -575,8 +585,12 @@ class WindowsAdapter(PlatformAdapter):
 
     def _discover_start_menu_apps(self) -> List[Dict[str, Any]]:
         roots = [
-            os.path.join(os.environ.get("ProgramData", ""), "Microsoft", "Windows", "Start Menu", "Programs"),
-            os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs"),
+            os.path.join(
+                os.environ.get("ProgramData", ""), "Microsoft", "Windows", "Start Menu", "Programs"
+            ),
+            os.path.join(
+                os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs"
+            ),
         ]
 
         results: List[Dict[str, Any]] = []
@@ -589,11 +603,13 @@ class WindowsAdapter(PlatformAdapter):
                         continue
                     path = os.path.join(current_root, filename)
                     name = os.path.splitext(filename)[0]
-                    results.append({
-                        "name": name,
-                        "path": path,
-                        "aliases": [],
-                    })
+                    results.append(
+                        {
+                            "name": name,
+                            "path": path,
+                            "aliases": [],
+                        }
+                    )
         return results
 
     def _discover_install_dir_apps(self) -> List[Dict[str, Any]]:
@@ -614,11 +630,13 @@ class WindowsAdapter(PlatformAdapter):
                     try:
                         for child in os.scandir(entry.path):
                             if child.is_file() and child.name.lower().endswith(".exe"):
-                                results.append({
-                                    "name": os.path.splitext(child.name)[0],
-                                    "path": child.path,
-                                    "aliases": [entry.name],
-                                })
+                                results.append(
+                                    {
+                                        "name": os.path.splitext(child.name)[0],
+                                        "path": child.path,
+                                        "aliases": [entry.name],
+                                    }
+                                )
                     except OSError:
                         continue
             except OSError:
@@ -807,7 +825,9 @@ class WindowsAdapter(PlatformAdapter):
     def _get_process_image_path(self, pid: int) -> str:
         process_handle = None
         try:
-            process_handle = self._kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+            process_handle = self._kernel32.OpenProcess(
+                PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid)
+            )
             if not process_handle:
                 return ""
 
@@ -941,9 +961,17 @@ class WindowsAdapter(PlatformAdapter):
             executable_name = os.path.basename(process_path_normalized)
             display_name = self._resolve_windows_app_display_name(executable_name)
 
-            if normalized_app_path and process_path_normalized and process_path_normalized == normalized_app_path:
+            if (
+                normalized_app_path
+                and process_path_normalized
+                and process_path_normalized == normalized_app_path
+            ):
                 pass
-            elif normalized_executable and executable_name and executable_name == normalized_executable:
+            elif (
+                normalized_executable
+                and executable_name
+                and executable_name == normalized_executable
+            ):
                 pass
             elif normalized_name and score_name_match(normalized_name, display_name) >= 1.0:
                 pass
@@ -957,7 +985,9 @@ class WindowsAdapter(PlatformAdapter):
                 "pid": pid,
                 "hwnd": int(hwnd),
                 "app_path": process_path,
-                "executable_name": os.path.basename(process_path) if process_path else executable_name,
+                "executable_name": (
+                    os.path.basename(process_path) if process_path else executable_name
+                ),
             }
         return None
 
@@ -992,7 +1022,9 @@ class WindowsAdapter(PlatformAdapter):
         try:
             current_thread_id = int(self._kernel32.GetCurrentThreadId())
             foreground_hwnd = self._get_foreground_window_handle()
-            foreground_thread_id = int(self._user32.GetWindowThreadProcessId(int(foreground_hwnd), None) or 0)
+            foreground_thread_id = int(
+                self._user32.GetWindowThreadProcessId(int(foreground_hwnd), None) or 0
+            )
             target_thread_id = int(self._user32.GetWindowThreadProcessId(int(hwnd), None) or 0)
 
             for source_thread_id in (foreground_thread_id, target_thread_id):
@@ -1183,7 +1215,10 @@ Write-Output '{_POWERSHELL_NONE_SENTINEL}'
         if int(file_op.fAnyOperationsAborted):
             return {"ok": False, "error": "操作已取消"}
         if result != 0:
-            return {"ok": False, "error": ctypes.FormatError(result).strip() or f"移到回收站失败 (Win32={result})"}
+            return {
+                "ok": False,
+                "error": ctypes.FormatError(result).strip() or f"移到回收站失败 (Win32={result})",
+            }
         return {"ok": True, "error": None}
 
     def get_default_browser_info(self) -> Dict[str, Any]:
@@ -1222,7 +1257,9 @@ Write-Output '{_POWERSHELL_NONE_SENTINEL}'
             "brave.exe": "Brave",
             "chromium.exe": "Chromium",
         }
-        app_name = known_names.get(executable_name.lower(), os.path.splitext(executable_name)[0] or identifier)
+        app_name = known_names.get(
+            executable_name.lower(), os.path.splitext(executable_name)[0] or identifier
+        )
 
         return {
             "app_name": app_name,
@@ -1231,7 +1268,9 @@ Write-Output '{_POWERSHELL_NONE_SENTINEL}'
             "is_chrome_family": is_chrome_family_browser(identifier, app_name, executable_name),
         }
 
-    def open_in_browser(self, url: Optional[str] = None, query: Optional[str] = None) -> Dict[str, Any]:
+    def open_in_browser(
+        self, url: Optional[str] = None, query: Optional[str] = None
+    ) -> Dict[str, Any]:
         if bool(url) == bool(query):
             raise ValueError("open_in_browser 必须且只能提供 url 或 query 其中一个")
 

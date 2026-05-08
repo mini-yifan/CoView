@@ -12,25 +12,20 @@ from typing import Any, Dict, List, Optional
 
 from baodou_ai.platform import get_platform_adapter
 
-
 DEFAULT_CONFIG = {
     "api_config": {
         "api_key": "",
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "model_name": "qwen3.6-35b-a3b",
-        "tls_verify": True
+        "tls_verify": True,
     },
     "ai_config": {
         "enable_thinking": False,
         "thinking_type": "disabled",
         "reasoning_effort": "minimal",
-        "vl_high_resolution_images": False
+        "vl_high_resolution_images": False,
     },
-    "memory_config": {
-        "max_text_memory": 80,
-        "max_image_memory": 3,
-        "history_count": 5
-    },
+    "memory_config": {"max_text_memory": 80, "max_image_memory": 3, "history_count": 5},
     "execution_config": {
         "max_visual_model_iterations": 80,
         "default_max_iterations": 80,
@@ -50,20 +45,16 @@ DEFAULT_CONFIG = {
         "settle_max_wait_ms": 4000,
         "settle_probe_width": 160,
         "settle_probe_height": 90,
-        "settle_change_threshold": 0.01
+        "settle_change_threshold": 0.01,
     },
     "screenshot_config": {
         "optimize_for_speed": True,
         "input_path": "imgs/screen.png",
         "save_debug_captures": False,
         "capture_backend": "auto",
-        "capture_fallback_backend": "pyautogui"
+        "capture_fallback_backend": "pyautogui",
     },
-    "mouse_config": {
-        "move_duration": 0.1,
-        "min_move_duration": 0.35,
-        "failsafe": False
-    },
+    "mouse_config": {"move_duration": 0.1, "min_move_duration": 0.35, "failsafe": False},
     "code_agent_config": {
         "enabled": True,
         "provider": "codex",
@@ -87,7 +78,7 @@ DEFAULT_CONFIG = {
                 ],
                 "model": "",
                 "reasoning_effort": "",
-                "sandbox": "workspace-write"
+                "sandbox": "workspace-write",
             },
             "claude": {
                 "command": "claude",
@@ -102,30 +93,30 @@ DEFAULT_CONFIG = {
                     "{model}",
                 ],
                 "model": "",
-                "permission_mode": "bypassPermissions"
+                "permission_mode": "bypassPermissions",
             },
             "kimi": {
                 "command": "kimi",
                 "args": ["--quiet", "--work-dir", "{workspace_path}", "-p", "{task}"],
                 "model": "",
                 "auto_approve": True,
-                "output_format": "text"
+                "output_format": "text",
             },
             "qwen": {
                 "command": "qwen",
                 "args": ["-p", "{task}", "--output-format", "json", "--yolo"],
                 "model": "",
                 "auto_approve": True,
-                "output_format": "json"
+                "output_format": "json",
             },
             "codebuddy": {
                 "command": "codebuddy",
                 "args": ["-y", "-p", "{task}", "--output-format", "json"],
                 "model": "",
                 "auto_approve": True,
-                "output_format": "json"
-            }
-        }
+                "output_format": "json",
+            },
+        },
     },
     "tts_config": {
         "enabled": True,
@@ -135,7 +126,7 @@ DEFAULT_CONFIG = {
         "voice": "longanhuan",
         "speech_rate": 1.2,
         "volume": 50,
-        "pitch_rate": 1.0
+        "pitch_rate": 1.0,
     },
     "voice_interaction_config": {
         "enabled": True,
@@ -168,21 +159,12 @@ DEFAULT_CONFIG = {
         "intent_model_name": "",
         "ignore_tts_echo": True,
         "idle_auto_unpin_seconds": 30,
-        "show_voice_recording_indicator": True
+        "show_voice_recording_indicator": True,
     },
     "wake_word_config": {
         "enabled": True,
         "provider": "sherpa_onnx",
-        "phrases": [
-            {
-                "text": "你好小彤",
-                "language": "zh"
-            },
-            {
-                "text": "hey Lucy",
-                "language": "en"
-            }
-        ],
+        "phrases": [{"text": "你好小彤", "language": "zh"}, {"text": "hey Lucy", "language": "en"}],
         "threshold": 0.5,
         "cooldown_ms": 1500,
         "post_wake_timeout_seconds": 8,
@@ -199,7 +181,7 @@ DEFAULT_CONFIG = {
     "floating_ball_config": {
         "asset_path": "",
         "animation_always_play": False,
-        "reset_animation_on_leave": True
+        "reset_animation_on_leave": True,
     },
     "companion_config": {
         "enabled": True,
@@ -209,7 +191,7 @@ DEFAULT_CONFIG = {
         "rapid_switch_window_seconds": 8,
         "rapid_switch_count_threshold": 4,
         "rapid_switch_cooldown_seconds": 20,
-        "request_timeout_seconds": 20
+        "request_timeout_seconds": 20,
     },
     "companion_privacy_config": {
         "enabled": True,
@@ -220,12 +202,9 @@ DEFAULT_CONFIG = {
         "title_keyword_guard_enabled": True,
         "url_guard_enabled": True,
         "password_focus_guard_enabled": True,
-        "never_persist_review_screenshots": True
+        "never_persist_review_screenshots": True,
     },
-    "locale_config": {
-        "locale": "zh_CN",
-        "respond_language": ""
-    }
+    "locale_config": {"locale": "zh_CN", "respond_language": ""},
 }
 
 
@@ -266,11 +245,23 @@ class Config:
 
     def _get_default_config_path(self) -> Path:
         """获取默认配置文件路径"""
+        if self._is_packaged_app_bundle():
+            return Path.home() / "Library" / "Application Support" / "CoView" / "config.json"
+
         config_path = self._platform_adapter.get_resource_path("config.json")
         if config_path and Path(config_path).exists():
             return Path(config_path)
 
         return Path("config.json")
+
+    def _is_packaged_app_bundle(self) -> bool:
+        is_app_bundle = getattr(self._platform_adapter, "is_app_bundle", None)
+        if not callable(is_app_bundle):
+            return False
+        try:
+            return bool(is_app_bundle())
+        except Exception:
+            return False
 
     def _merge_with_defaults(self, config_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """将外部配置与默认配置递归合并，补齐新增配置项。"""
@@ -280,11 +271,7 @@ class Config:
         def deep_merge(defaults: Dict[str, Any], overrides: Dict[str, Any]) -> Dict[str, Any]:
             merged = copy.deepcopy(defaults)
             for key, value in overrides.items():
-                if (
-                    key in merged
-                    and isinstance(merged[key], dict)
-                    and isinstance(value, dict)
-                ):
+                if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
                     merged[key] = deep_merge(merged[key], value)
                 else:
                     merged[key] = value
@@ -393,10 +380,7 @@ class Config:
 
     def _default_wake_word_phrase_map(self) -> Dict[str, str]:
         defaults = DEFAULT_CONFIG["wake_word_config"]["phrases"]
-        return {
-            str(item["language"]): str(item["text"])
-            for item in defaults
-        }
+        return {str(item["language"]): str(item["text"]) for item in defaults}
 
     def _coerce_int(
         self,
@@ -482,12 +466,12 @@ class Config:
                 resolved = self._platform_adapter.get_resource_path(path)
                 if resolved:
                     self._resolved_paths["previous_image_path"] = resolved
-    
+
     def get_resolved_path(self, key: str) -> Optional[str]:
         """获取解析后的绝对路径"""
         if key in self._resolved_paths:
             return self._resolved_paths[key]
-        
+
         screenshot_config = self._config.get("screenshot_config", {})
         return screenshot_config.get(key)
 
@@ -507,20 +491,20 @@ class Config:
 
         config_dir = self._config_path.parent if self._config_path else Path(".")
         return str((config_dir / normalized).resolve())
-    
+
     def save(self) -> bool:
         """保存配置到文件"""
         try:
             config_dir = self._config_path.parent if self._config_path else Path(".")
             config_dir.mkdir(parents=True, exist_ok=True)
-            
+
             with open(self._config_path, "w", encoding="utf-8") as f:
                 json.dump(self._config, f, ensure_ascii=False, indent=4)
             return True
         except Exception as e:
             print(f"保存配置文件失败: {e}")
             return False
-    
+
     def get(self, key: str, default: Any = None) -> Any:
         """获取配置值"""
         keys = key.split(".")
@@ -531,7 +515,7 @@ class Config:
             else:
                 return default
         return value
-    
+
     def set(self, key: str, value: Any) -> None:
         """设置配置值"""
         keys = key.split(".")
@@ -541,32 +525,32 @@ class Config:
                 config[k] = {}
             config = config[k]
         config[keys[-1]] = value
-    
+
     @property
     def api_config(self) -> Dict[str, Any]:
         """获取API配置"""
         return self._config.get("api_config", DEFAULT_CONFIG["api_config"])
-    
+
     @property
     def ai_config(self) -> Dict[str, Any]:
         """获取AI配置"""
         return self._config.get("ai_config", DEFAULT_CONFIG["ai_config"])
-    
+
     @property
     def execution_config(self) -> Dict[str, Any]:
         """获取执行配置"""
         return self._config.get("execution_config", DEFAULT_CONFIG["execution_config"])
-    
+
     @property
     def memory_config(self) -> Dict[str, Any]:
         """获取记忆配置"""
         return self._config.get("memory_config", DEFAULT_CONFIG["memory_config"])
-    
+
     @property
     def screenshot_config(self) -> Dict[str, Any]:
         """获取截图配置"""
         return self._config.get("screenshot_config", DEFAULT_CONFIG["screenshot_config"])
-    
+
     @property
     def mouse_config(self) -> Dict[str, Any]:
         """获取鼠标配置"""
@@ -585,7 +569,9 @@ class Config:
     @property
     def voice_interaction_config(self) -> Dict[str, Any]:
         """获取语音交互配置"""
-        return self._config.get("voice_interaction_config", DEFAULT_CONFIG["voice_interaction_config"])
+        return self._config.get(
+            "voice_interaction_config", DEFAULT_CONFIG["voice_interaction_config"]
+        )
 
     @property
     def wake_word_config(self) -> Dict[str, Any]:
@@ -620,7 +606,9 @@ class Config:
         if normalized_text:
             phrase_map[normalized_language] = normalized_text
         else:
-            phrase_map[normalized_language] = self._default_wake_word_phrase_map()[normalized_language]
+            phrase_map[normalized_language] = self._default_wake_word_phrase_map()[
+                normalized_language
+            ]
 
         self.set(
             "wake_word_config.phrases",
@@ -682,18 +670,18 @@ class Config:
         if use_english:
             return "Model API key is not configured. Please enter an API key in Settings first."
         return "模型 API Key 未配置，请先在设置中填写接口密钥。"
-    
+
     @property
     def api_key(self) -> str:
         """获取API密钥"""
         return self.api_config.get("api_key", "")
-    
+
     @api_key.setter
     def api_key(self, value: str) -> None:
         """设置API密钥"""
         self.set("api_config.api_key", value)
         self.save()
-    
+
     def reload(self) -> None:
         """重新加载配置"""
         self.load()

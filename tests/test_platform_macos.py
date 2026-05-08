@@ -83,14 +83,28 @@ class FakeQuartz:
         }
 
     def CGEventPost(self, tap, event):
-        self.posted.append({
-            "tap": tap,
-            "type": event["type"],
-            "point": event["point"],
-            "button": event["button"],
-            "fields": dict(event["fields"]),
-        })
+        self.posted.append(
+            {
+                "tap": tap,
+                "type": event["type"],
+                "point": event["point"],
+                "button": event["button"],
+                "fields": dict(event["fields"]),
+            }
+        )
         self.cursor = event["point"]
+
+
+class UntrustedQuartz(FakeQuartz):
+    kAXTrustedCheckOptionPrompt = "prompt"
+
+    def __init__(self):
+        super().__init__()
+        self.prompts = []
+
+    def AXIsProcessTrustedWithOptions(self, options):
+        self.prompts.append(dict(options))
+        return False
 
 
 def test_macos_click_double_click_sets_click_state(monkeypatch):
@@ -108,6 +122,18 @@ def test_macos_click_double_click_sets_click_state(monkeypatch):
         "left_up",
     ]
     assert [event["fields"]["click_state"] for event in fake_quartz.posted] == [1, 1, 2, 2]
+
+
+def test_macos_click_prompts_when_accessibility_is_not_trusted(monkeypatch):
+    adapter = MacOSAdapter()
+    fake_quartz = UntrustedQuartz()
+    monkeypatch.setattr(adapter, "_get_quartz_module", lambda: fake_quartz)
+
+    with pytest.raises(RuntimeError, match="辅助功能权限"):
+        adapter.click(button="left")
+
+    assert fake_quartz.prompts == [{"prompt": True}]
+    assert fake_quartz.posted == []
 
 
 def test_macos_drag_to_posts_dragged_events_and_release(monkeypatch):
@@ -139,7 +165,9 @@ def test_macos_move_cursor_uses_time_based_motion_without_backfilling(monkeypatc
         return last_time["value"]
 
     monkeypatch.setattr(adapter, "_get_quartz_module", lambda: fake_quartz)
-    monkeypatch.setattr("baodou_ai.platform.macos.get_mouse_motion_coordinator", lambda: coordinator)
+    monkeypatch.setattr(
+        "baodou_ai.platform.macos.get_mouse_motion_coordinator", lambda: coordinator
+    )
     monkeypatch.setattr("baodou_ai.platform.macos.time.monotonic", fake_monotonic)
 
     adapter.move_cursor(110, 120, duration=1.0)
@@ -154,7 +182,9 @@ def test_macos_move_cursor_raises_when_motion_is_cancelled(monkeypatch):
     coordinator = CancellingMotionCoordinator()
 
     monkeypatch.setattr(adapter, "_get_quartz_module", lambda: fake_quartz)
-    monkeypatch.setattr("baodou_ai.platform.macos.get_mouse_motion_coordinator", lambda: coordinator)
+    monkeypatch.setattr(
+        "baodou_ai.platform.macos.get_mouse_motion_coordinator", lambda: coordinator
+    )
     monkeypatch.setattr("baodou_ai.platform.macos.time.monotonic", lambda: 100.0)
 
     try:
@@ -174,7 +204,9 @@ def test_macos_drag_to_releases_mouse_when_motion_is_cancelled(monkeypatch):
     coordinator = CancellingMotionCoordinator()
 
     monkeypatch.setattr(adapter, "_get_quartz_module", lambda: fake_quartz)
-    monkeypatch.setattr("baodou_ai.platform.macos.get_mouse_motion_coordinator", lambda: coordinator)
+    monkeypatch.setattr(
+        "baodou_ai.platform.macos.get_mouse_motion_coordinator", lambda: coordinator
+    )
     monkeypatch.setattr("baodou_ai.platform.macos.time.monotonic", lambda: 100.0)
 
     with pytest.raises(MouseMotionCancelled):
@@ -192,25 +224,35 @@ def test_macos_scroll_posts_scroll_event(monkeypatch):
 
     adapter.scroll(12)
 
-    assert fake_quartz.posted == [{
-        "tap": "hid_tap",
-        "type": "scroll",
-        "point": (10.0, 20.0),
-        "button": None,
-        "fields": {"amount": 12},
-    }]
+    assert fake_quartz.posted == [
+        {
+            "tap": "hid_tap",
+            "type": "scroll",
+            "point": (10.0, 20.0),
+            "button": None,
+            "fields": {"amount": 12},
+        }
+    ]
 
 
 def test_get_capture_screens_info_prefers_qt_logical_geometry(monkeypatch):
     adapter = MacOSAdapter()
-    monkeypatch.setattr(adapter, "_get_qt_screen_infos", lambda: [
-        {"index": 0, "x": 0, "y": 0, "width": 1512, "height": 982, "is_primary": True},
-        {"index": 1, "x": -1600, "y": -200, "width": 1200, "height": 900, "is_primary": False},
-    ])
-    monkeypatch.setattr(adapter, "_get_sorted_nsscreen_metrics", lambda: [
-        {"x": 999, "y": 888, "width": 1512, "height": 982, "scale": 2.0, "is_primary": True},
-        {"x": 777, "y": 666, "width": 1200, "height": 900, "scale": 1.0, "is_primary": False},
-    ])
+    monkeypatch.setattr(
+        adapter,
+        "_get_qt_screen_infos",
+        lambda: [
+            {"index": 0, "x": 0, "y": 0, "width": 1512, "height": 982, "is_primary": True},
+            {"index": 1, "x": -1600, "y": -200, "width": 1200, "height": 900, "is_primary": False},
+        ],
+    )
+    monkeypatch.setattr(
+        adapter,
+        "_get_sorted_nsscreen_metrics",
+        lambda: [
+            {"x": 999, "y": 888, "width": 1512, "height": 982, "scale": 2.0, "is_primary": True},
+            {"x": 777, "y": 666, "width": 1200, "height": 900, "scale": 1.0, "is_primary": False},
+        ],
+    )
 
     screens = adapter.get_capture_screens_info()
 
@@ -244,10 +286,14 @@ def test_get_capture_screens_info_prefers_qt_logical_geometry(monkeypatch):
 
 def test_get_all_screens_info_prefers_qt_logical_geometry(monkeypatch):
     adapter = MacOSAdapter()
-    monkeypatch.setattr(adapter, "_get_qt_screen_infos", lambda: [
-        {"index": 0, "x": 0, "y": 0, "width": 1512, "height": 982, "is_primary": True},
-        {"index": 1, "x": -1600, "y": -200, "width": 1200, "height": 900, "is_primary": False},
-    ])
+    monkeypatch.setattr(
+        adapter,
+        "_get_qt_screen_infos",
+        lambda: [
+            {"index": 0, "x": 0, "y": 0, "width": 1512, "height": 982, "is_primary": True},
+            {"index": 1, "x": -1600, "y": -200, "width": 1200, "height": 900, "is_primary": False},
+        ],
+    )
 
     screens = adapter.get_all_screens_info()
 
@@ -259,15 +305,19 @@ def test_get_all_screens_info_prefers_qt_logical_geometry(monkeypatch):
 
 def test_macos_launch_app_accepts_excel_alias_and_uses_open_path(monkeypatch):
     adapter = MacOSAdapter()
-    monkeypatch.setattr(adapter, "_list_available_apps", lambda: [
-        {
-            "name": "Microsoft Excel",
-            "display_name": "Microsoft Excel",
-            "bundle_id": "com.microsoft.Excel",
-            "path": "/Applications/Microsoft Excel.app",
-            "aliases": [],
-        }
-    ])
+    monkeypatch.setattr(
+        adapter,
+        "_list_available_apps",
+        lambda: [
+            {
+                "name": "Microsoft Excel",
+                "display_name": "Microsoft Excel",
+                "bundle_id": "com.microsoft.Excel",
+                "path": "/Applications/Microsoft Excel.app",
+                "aliases": [],
+            }
+        ],
+    )
 
     recorded = {}
 
@@ -290,15 +340,19 @@ def test_macos_launch_app_accepts_excel_alias_and_uses_open_path(monkeypatch):
 
 def test_macos_launch_app_bridges_localized_system_name(monkeypatch):
     adapter = MacOSAdapter()
-    monkeypatch.setattr(adapter, "_list_available_apps", lambda: [
-        {
-            "name": "Notes",
-            "display_name": "备忘录",
-            "bundle_id": "com.apple.Notes",
-            "path": "/System/Applications/Notes.app",
-            "aliases": ["Notes", "备忘录"],
-        }
-    ])
+    monkeypatch.setattr(
+        adapter,
+        "_list_available_apps",
+        lambda: [
+            {
+                "name": "Notes",
+                "display_name": "备忘录",
+                "bundle_id": "com.apple.Notes",
+                "path": "/System/Applications/Notes.app",
+                "aliases": ["Notes", "备忘录"],
+            }
+        ],
+    )
 
     recorded = {}
 
@@ -318,15 +372,19 @@ def test_macos_launch_app_bridges_localized_system_name(monkeypatch):
 
 def test_macos_launch_app_bridges_finder_name(monkeypatch):
     adapter = MacOSAdapter()
-    monkeypatch.setattr(adapter, "_list_available_apps", lambda: [
-        {
-            "name": "Finder",
-            "display_name": "访达",
-            "bundle_id": "com.apple.finder",
-            "path": "/System/Library/CoreServices/Finder.app",
-            "aliases": ["Finder", "访达"],
-        }
-    ])
+    monkeypatch.setattr(
+        adapter,
+        "_list_available_apps",
+        lambda: [
+            {
+                "name": "Finder",
+                "display_name": "访达",
+                "bundle_id": "com.apple.finder",
+                "path": "/System/Library/CoreServices/Finder.app",
+                "aliases": ["Finder", "访达"],
+            }
+        ],
+    )
 
     recorded = {}
 
@@ -424,11 +482,15 @@ def test_macos_open_in_browser_uses_launchservices_preferences_when_coreservices
 
 def test_macos_list_installed_app_names_uses_raw_scanned_names(monkeypatch):
     adapter = MacOSAdapter()
-    monkeypatch.setattr(adapter, "_iter_macos_application_paths", lambda: [
-        "/System/Applications/Notes.app",
-        "/Applications/Lark.app",
-        "/Applications/notes.app",
-    ])
+    monkeypatch.setattr(
+        adapter,
+        "_iter_macos_application_paths",
+        lambda: [
+            "/System/Applications/Notes.app",
+            "/Applications/Lark.app",
+            "/Applications/notes.app",
+        ],
+    )
 
     seen_flags = []
 
@@ -529,7 +591,7 @@ def test_macos_open_in_finder_with_directory_path(monkeypatch, tmp_path):
 
     assert result["target_path"] == str(test_dir)
     assert result["revealed_file"] is None
-    assert 'open POSIX file' in recorded["cmd"][2]
+    assert "open POSIX file" in recorded["cmd"][2]
     assert str(test_dir) in recorded["cmd"][2]
 
 
@@ -550,7 +612,7 @@ def test_macos_open_in_finder_with_file_path_uses_reveal(monkeypatch, tmp_path):
 
     assert result["target_path"] == str(tmp_path)
     assert result["revealed_file"] == str(test_file)
-    assert 'reveal POSIX file' in recorded["cmd"][2]
+    assert "reveal POSIX file" in recorded["cmd"][2]
     assert str(test_file) in recorded["cmd"][2]
 
 
@@ -599,8 +661,12 @@ def test_iter_macos_application_paths_recurses_into_system_apps(monkeypatch):
         ],
     }
 
-    monkeypatch.setattr("baodou_ai.platform.macos.os.path.expanduser", lambda path: "/Users/test/Applications")
-    monkeypatch.setattr("baodou_ai.platform.macos.os.walk", lambda root: iter(walk_map.get(root, [])))
+    monkeypatch.setattr(
+        "baodou_ai.platform.macos.os.path.expanduser", lambda path: "/Users/test/Applications"
+    )
+    monkeypatch.setattr(
+        "baodou_ai.platform.macos.os.walk", lambda root: iter(walk_map.get(root, []))
+    )
 
     app_paths = adapter._iter_macos_application_paths()
 
@@ -638,7 +704,10 @@ def test_macos_activate_app_only_activates_running_process(monkeypatch):
     )
     monkeypatch.setitem(sys.modules, "AppKit", fake_appkit)
 
-    assert adapter.activate_app({"app_name": "微信", "bundle_id": "com.tencent.xinWeChat", "pid": 321}) is True
+    assert (
+        adapter.activate_app({"app_name": "微信", "bundle_id": "com.tencent.xinWeChat", "pid": 321})
+        is True
+    )
     assert calls["pid"] == 321
     assert calls["activated"] >= 1
 
@@ -662,7 +731,10 @@ def test_macos_activate_app_does_not_relaunch_closed_app(monkeypatch):
     )
     monkeypatch.setitem(sys.modules, "AppKit", fake_appkit)
 
-    assert adapter.activate_app({"app_name": "微信", "bundle_id": "com.tencent.xinWeChat", "pid": 321}) is False
+    assert (
+        adapter.activate_app({"app_name": "微信", "bundle_id": "com.tencent.xinWeChat", "pid": 321})
+        is False
+    )
 
 
 def test_macos_activate_app_does_not_unhide_hidden_app(monkeypatch):
@@ -693,5 +765,8 @@ def test_macos_activate_app_does_not_unhide_hidden_app(monkeypatch):
     )
     monkeypatch.setitem(sys.modules, "AppKit", fake_appkit)
 
-    assert adapter.activate_app({"app_name": "微信", "bundle_id": "com.tencent.xinWeChat", "pid": 321}) is False
+    assert (
+        adapter.activate_app({"app_name": "微信", "bundle_id": "com.tencent.xinWeChat", "pid": 321})
+        is False
+    )
     assert calls["activated"] == 0

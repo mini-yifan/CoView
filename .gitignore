@@ -31,6 +31,7 @@ env/
 *.swo
 *.bak
 *.spec
+!packaging/**/*.spec
 *.sqlite3
 .DS_Store
 Thumbs.db
@@ -43,3 +44,5 @@ models/
 sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20.tar.bz2
 remotion/
 remotion_promo/
+app_icons/AppIcon.iconset/
+app_icons/png/

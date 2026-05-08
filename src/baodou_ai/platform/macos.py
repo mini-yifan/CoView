@@ -28,8 +28,9 @@ from baodou_ai.platform.mouse_motion import get_mouse_motion_coordinator
 
 class MacOSAdapter(PlatformAdapter):
     """macOS平台适配器"""
+
     _MOTION_FRAME_INTERVAL_SECONDS = 1.0 / 60.0
-    
+
     def __init__(self):
         self._is_app_bundle = self._detect_app_bundle()
         self._is_transparent_mode = False
@@ -38,97 +39,101 @@ class MacOSAdapter(PlatformAdapter):
         self._quartz_module = None
         self._app_catalog_cache: Optional[List[Dict[str, Any]]] = None
         self._app_name_catalog_cache: Optional[List[str]] = None
-    
+
     def _detect_app_bundle(self) -> bool:
         """检测是否在.app包中运行"""
         executable_path = sys.executable
         if ".app/Contents/MacOS" in executable_path:
             return True
-        
+
         cwd = os.getcwd()
         if ".app/Contents" in cwd:
             return True
-        
+
         return False
-    
+
     def get_resource_path(self, relative_path: str) -> Optional[str]:
         """获取资源文件路径"""
         if os.path.isabs(relative_path):
             return relative_path
-        
+
         if not self._is_app_bundle:
             if os.path.exists(relative_path):
                 return os.path.abspath(relative_path)
             return None
-        
+
         resource_path = self._get_app_resource_path()
         if not resource_path:
             return None
-        
-        resources_dir = resource_path if resource_path.endswith("Resources") else os.path.dirname(resource_path)
-        
+
+        resources_dir = (
+            resource_path if resource_path.endswith("Resources") else os.path.dirname(resource_path)
+        )
+
         direct_path = os.path.join(resources_dir, relative_path)
         if os.path.exists(direct_path):
             return direct_path
-        
+
         baodou_ai_path = os.path.join(resources_dir, "baodou_AI", relative_path)
         if os.path.exists(baodou_ai_path):
             return baodou_ai_path
-        
+
         full_path = os.path.join(resource_path, relative_path)
         if os.path.exists(full_path):
             return full_path
-        
+
         return None
-    
+
     def _get_app_resource_path(self) -> Optional[str]:
         """获取.app资源包路径"""
         if not self._is_app_bundle:
             return None
-        
+
         executable_path = sys.executable
         if ".app/Contents/MacOS" in executable_path:
-            base_resource_path = executable_path.replace(".app/Contents/MacOS", ".app/Contents/Resources")
-            
+            base_resource_path = executable_path.replace(
+                ".app/Contents/MacOS", ".app/Contents/Resources"
+            )
+
             if os.path.exists(os.path.join(base_resource_path, "config.json")):
                 return base_resource_path
-            
+
             possible_paths = [
                 base_resource_path,
                 os.path.join(base_resource_path, os.path.basename(executable_path)),
-                os.path.join(os.path.dirname(base_resource_path), "Resources")
+                os.path.join(os.path.dirname(base_resource_path), "Resources"),
             ]
-            
+
             for path in possible_paths:
                 if os.path.exists(os.path.join(path, "config.json")):
                     return path
-            
+
             return base_resource_path
-        
+
         cwd = os.getcwd()
         if ".app/Contents" in cwd:
             app_match = re.search(r"(.+\.app)/Contents", cwd)
             if app_match:
                 app_path = app_match.group(1)
                 base_resource_path = os.path.join(app_path, "Contents", "Resources")
-                
+
                 if os.path.exists(os.path.join(base_resource_path, "config.json")):
                     return base_resource_path
-                
+
                 possible_paths = [
                     base_resource_path,
                     os.path.join(base_resource_path, os.path.basename(cwd)),
-                    os.path.join(os.path.dirname(base_resource_path), "Resources")
+                    os.path.join(os.path.dirname(base_resource_path), "Resources"),
                 ]
-                
+
                 for path in possible_paths:
                     if os.path.exists(os.path.join(path, "config.json")):
                         return path
-                
+
                 return base_resource_path
-        
+
         return None
-    
+
     def setup_window(self, window) -> None:
         """设置窗口属性"""
         window.setWindowOpacity(self._original_opacity)
@@ -155,7 +160,7 @@ class MacOSAdapter(PlatformAdapter):
                 return ns_window
 
         return None
-    
+
     def prevent_screenshot(self, window) -> bool:
         """防止窗口被截图"""
         try:
@@ -203,7 +208,7 @@ class MacOSAdapter(PlatformAdapter):
         except Exception as e:
             print(f"macOS系统：恢复窗口截图时出错: {e}")
             return False
-    
+
     def translate_hotkey_keys(self, keys: List[str]) -> List[str]:
         """翻译快捷键"""
         translated = []
@@ -217,19 +222,19 @@ class MacOSAdapter(PlatformAdapter):
             else:
                 translated.append(key)
         return translated
-    
+
     def get_hotkey_modifier(self) -> str:
         """获取快捷键修饰符"""
         return "command"
-    
+
     def is_app_bundle(self) -> bool:
         """检测是否在打包的应用程序中运行"""
         return self._is_app_bundle
-    
+
     def enter_transparent_mode(self, window) -> bool:
         """
         进入透明穿透模式
-        
+
         窗口变为完全透明且鼠标可穿透
         """
         try:
@@ -245,7 +250,7 @@ class MacOSAdapter(PlatformAdapter):
         except Exception as e:
             print(f"进入透明穿透模式时出错: {e}")
             return False
-    
+
     def exit_transparent_mode(self, window) -> bool:
         """
         退出透明穿透模式
@@ -330,14 +335,20 @@ class MacOSAdapter(PlatformAdapter):
             metrics: List[Dict[str, Any]] = []
             for screen in sorted_screens:
                 frame = screen.frame()
-                metrics.append({
-                    "x": int(frame.origin.x),
-                    "y": int(frame.origin.y),
-                    "width": int(frame.size.width),
-                    "height": int(frame.size.height),
-                    "scale": float(screen.backingScaleFactor()) if hasattr(screen, "backingScaleFactor") else 1.0,
-                    "is_primary": screen == main_screen,
-                })
+                metrics.append(
+                    {
+                        "x": int(frame.origin.x),
+                        "y": int(frame.origin.y),
+                        "width": int(frame.size.width),
+                        "height": int(frame.size.height),
+                        "scale": (
+                            float(screen.backingScaleFactor())
+                            if hasattr(screen, "backingScaleFactor")
+                            else 1.0
+                        ),
+                        "is_primary": screen == main_screen,
+                    }
+                )
             return metrics
         except Exception as e:
             print(f"获取 NSScreen 元信息时出错: {e}")
@@ -398,7 +409,9 @@ class MacOSAdapter(PlatformAdapter):
                 dirnames[:] = [name for name in dirnames if not name.endswith(".app")]
         return result
 
-    def _get_app_metadata(self, app_path: str, apply_display_override: bool = True) -> Dict[str, Any]:
+    def _get_app_metadata(
+        self, app_path: str, apply_display_override: bool = True
+    ) -> Dict[str, Any]:
         app_name = os.path.splitext(os.path.basename(app_path))[0]
         display_name = app_name
         bundle_id = ""
@@ -414,7 +427,12 @@ class MacOSAdapter(PlatformAdapter):
 
             bundle = NSBundle.bundleWithPath_(app_path)
             info = bundle.infoDictionary() if bundle else {}
-            for key in ("CFBundleDisplayName", "CFBundleName", "CFBundleExecutable", "CFBundleIdentifier"):
+            for key in (
+                "CFBundleDisplayName",
+                "CFBundleName",
+                "CFBundleExecutable",
+                "CFBundleIdentifier",
+            ):
                 value = info.get(key) if info else None
                 if value:
                     value_text = str(value).strip()
@@ -499,7 +517,8 @@ class MacOSAdapter(PlatformAdapter):
                 app_name,
                 candidate.get("display_name") or candidate["name"],
                 candidate.get("aliases"),
-            ) >= 1.0
+            )
+            >= 1.0
         ]
         if exact_matches:
             best = exact_matches[0]
@@ -523,8 +542,7 @@ class MacOSAdapter(PlatformAdapter):
                     app_path=top_candidate["path"],
                 )
             suggestions = [
-                candidate.get("display_name") or candidate["name"]
-                for candidate in ranked
+                candidate.get("display_name") or candidate["name"] for candidate in ranked
             ]
             return self._build_launch_result(
                 matched=False,
@@ -634,7 +652,7 @@ class MacOSAdapter(PlatformAdapter):
         "Microsoft Word": (
             'tell application "Microsoft Word"\n'
             "    try\n"
-            '        set docPath to full name of active document\n'
+            "        set docPath to full name of active document\n"
             "        return docPath\n"
             "    on error\n"
             '        return ""\n'
@@ -644,7 +662,7 @@ class MacOSAdapter(PlatformAdapter):
         "Microsoft Excel": (
             'tell application "Microsoft Excel"\n'
             "    try\n"
-            '        set docPath to full name of active workbook\n'
+            "        set docPath to full name of active workbook\n"
             "        return docPath\n"
             "    on error\n"
             '        return ""\n'
@@ -654,7 +672,7 @@ class MacOSAdapter(PlatformAdapter):
         "Microsoft PowerPoint": (
             'tell application "Microsoft PowerPoint"\n'
             "    try\n"
-            '        set docPath to full name of active presentation\n'
+            "        set docPath to full name of active presentation\n"
             "        return docPath\n"
             "    on error\n"
             '        return ""\n'
@@ -664,7 +682,7 @@ class MacOSAdapter(PlatformAdapter):
         "WPS": (
             'tell application "wpsoffice"\n'
             "    try\n"
-            '        set docPath to full name of active document\n'
+            "        set docPath to full name of active document\n"
             "        return docPath\n"
             "    on error\n"
             '        return ""\n'
@@ -736,11 +754,7 @@ class MacOSAdapter(PlatformAdapter):
         if not resolved.exists():
             return {"ok": False, "error": f"路径不存在: {resolved}"}
 
-        script = (
-            'tell application "Finder"\n'
-            f'    delete POSIX file "{resolved}"\n'
-            "end tell\n"
-        )
+        script = 'tell application "Finder"\n' f'    delete POSIX file "{resolved}"\n' "end tell\n"
         try:
             subprocess.run(["osascript", "-e", script], check=True, timeout=5)
             return {"ok": True, "error": None}
@@ -845,7 +859,9 @@ class MacOSAdapter(PlatformAdapter):
             return ""
         return ""
 
-    def open_in_browser(self, url: Optional[str] = None, query: Optional[str] = None) -> Dict[str, Any]:
+    def open_in_browser(
+        self, url: Optional[str] = None, query: Optional[str] = None
+    ) -> Dict[str, Any]:
         if bool(url) == bool(query):
             raise ValueError("open_in_browser 必须且只能提供 url 或 query 其中一个")
 
@@ -993,7 +1009,9 @@ class MacOSAdapter(PlatformAdapter):
                 running_app = NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
 
             if running_app is None:
-                bundle_id = str(app_info.get("bundle_id") or app_info.get("identifier") or "").strip()
+                bundle_id = str(
+                    app_info.get("bundle_id") or app_info.get("identifier") or ""
+                ).strip()
                 app_name = str(app_info.get("app_name") or "").strip()
                 workspace = NSWorkspace.sharedWorkspace()
                 running_apps = list(workspace.runningApplications() or [])
@@ -1058,6 +1076,31 @@ class MacOSAdapter(PlatformAdapter):
             quartz.kCGEventLeftMouseDragged,
         )
 
+    def is_accessibility_trusted(self, *, prompt: bool = False) -> bool:
+        """Return whether macOS trusts this process for accessibility input events."""
+        try:
+            quartz = self._get_quartz_module()
+            checker = getattr(quartz, "AXIsProcessTrustedWithOptions", None)
+            if checker is None:
+                return True
+            prompt_key = getattr(
+                quartz, "kAXTrustedCheckOptionPrompt", "AXTrustedCheckOptionPrompt"
+            )
+            return bool(checker({prompt_key: bool(prompt)}))
+        except Exception as exc:
+            print(f"检查 macOS 辅助功能权限失败: {exc}")
+            return True
+
+    def _ensure_accessibility_trusted(self) -> None:
+        """Raise a clear error when HID event posting is not allowed by macOS."""
+        if self.is_accessibility_trusted(prompt=True):
+            return
+        raise RuntimeError(
+            "CoView 尚未获得 macOS 辅助功能权限，鼠标点击和键盘输入会被系统拦截。"
+            "请打开 系统设置 > 隐私与安全性 > 辅助功能，移除旧的 CoView 条目后重新添加当前 CoView.app，"
+            "然后完全退出并重新打开 CoView。"
+        )
+
     def _post_mouse_event(
         self,
         event_type,
@@ -1067,6 +1110,7 @@ class MacOSAdapter(PlatformAdapter):
         click_state: Optional[int] = None,
     ) -> None:
         """发送一条 Quartz 鼠标事件。"""
+        self._ensure_accessibility_trusted()
         quartz = self._get_quartz_module()
         event = quartz.CGEventCreateMouseEvent(
             None,
@@ -1113,7 +1157,9 @@ class MacOSAdapter(PlatformAdapter):
             return 2.0 * normalized * normalized
         return 1.0 - ((-2.0 * normalized + 2.0) ** 2) / 2.0
 
-    def _perform_motion(self, x: float, y: float, duration: float, event_type, button: str = "left") -> None:
+    def _perform_motion(
+        self, x: float, y: float, duration: float, event_type, button: str = "left"
+    ) -> None:
         """执行平滑移动或拖拽。"""
         quartz = self._get_quartz_module()
         cg_button, _, _, _ = self._get_button_events(button)
@@ -1203,6 +1249,7 @@ class MacOSAdapter(PlatformAdapter):
 
     def scroll(self, amount: int) -> None:
         """在当前位置执行滚轮操作。"""
+        self._ensure_accessibility_trusted()
         quartz = self._get_quartz_module()
         event = quartz.CGEventCreateScrollWheelEvent(
             None,
@@ -1216,16 +1263,25 @@ class MacOSAdapter(PlatformAdapter):
 
     def key_down(self, key: str) -> None:
         """按下键盘按键。"""
+        self._ensure_accessibility_trusted()
         import pyautogui
 
         pyautogui.keyDown(key)
 
     def key_up(self, key: str) -> None:
         """释放键盘按键。"""
+        self._ensure_accessibility_trusted()
         import pyautogui
 
         pyautogui.keyUp(key)
-    
+
+    def key_press(self, key: str) -> None:
+        """按下并释放键盘按键。"""
+        self._ensure_accessibility_trusted()
+        import pyautogui
+
+        pyautogui.press(key)
+
     def get_scaling_factor(self) -> float:
         """
         获取屏幕缩放因子（Retina缩放）
@@ -1237,14 +1293,15 @@ class MacOSAdapter(PlatformAdapter):
         """
         try:
             from AppKit import NSScreen
+
             screen = NSScreen.mainScreen()
             if screen:
                 return float(screen.backingScaleFactor())
         except Exception as e:
             print(f"获取缩放因子时出错: {e}")
-        
+
         return 1.0
-    
+
     def get_logical_screen_size(self) -> tuple:
         """
         获取逻辑屏幕尺寸
@@ -1262,35 +1319,38 @@ class MacOSAdapter(PlatformAdapter):
 
         try:
             from AppKit import NSScreen
+
             screen = NSScreen.mainScreen()
             if screen:
                 frame = screen.frame()
                 return (int(frame.size.width), int(frame.size.height))
         except Exception as e:
             print(f"获取逻辑屏幕尺寸时出错: {e}")
-        
+
         import pyautogui
+
         size = pyautogui.size()
         return (size.width, size.height)
-    
+
     def get_screen_count(self) -> int:
         """
         获取屏幕数量
-        
+
         Returns:
             屏幕数量
         """
         try:
             from AppKit import NSScreen
+
             return len(NSScreen.screens())
         except Exception as e:
             print(f"获取屏幕数量时出错: {e}")
             return 1
-    
+
     def get_all_screens_info(self) -> List[Dict[str, Any]]:
         """
         获取所有屏幕信息
-        
+
         Returns:
             屏幕信息列表
         """
@@ -1300,27 +1360,30 @@ class MacOSAdapter(PlatformAdapter):
 
         try:
             from AppKit import NSScreen
+
             screens = NSScreen.screens()
             main_screen = NSScreen.mainScreen()
             result = []
-            
+
             for i, screen in enumerate(screens):
                 frame = screen.frame()
-                is_primary = (screen == main_screen)
-                
-                result.append({
-                    'index': i,
-                    'x': int(frame.origin.x),
-                    'y': int(frame.origin.y),
-                    'width': int(frame.size.width),
-                    'height': int(frame.size.height),
-                    'is_primary': is_primary
-                })
-            
+                is_primary = screen == main_screen
+
+                result.append(
+                    {
+                        "index": i,
+                        "x": int(frame.origin.x),
+                        "y": int(frame.origin.y),
+                        "width": int(frame.size.width),
+                        "height": int(frame.size.height),
+                        "is_primary": is_primary,
+                    }
+                )
+
             return result
         except Exception as e:
             print(f"获取所有屏幕信息时出错: {e}")
-            return [{'index': 0, 'x': 0, 'y': 0, 'width': 1920, 'height': 1080, 'is_primary': True}]
+            return [{"index": 0, "x": 0, "y": 0, "width": 1920, "height": 1080, "is_primary": True}]
 
     def get_capture_screens_info(self) -> List[Dict[str, Any]]:
         """获取用于截图的屏幕信息。"""
@@ -1331,18 +1394,20 @@ class MacOSAdapter(PlatformAdapter):
             for index, qt_screen in enumerate(qt_screens):
                 nss_screen = nss_metrics[index] if index < len(nss_metrics) else {}
                 scale = float(nss_screen.get("scale", 1.0))
-                capture_screens.append({
-                    "index": index,
-                    "is_primary": bool(qt_screen.get("is_primary")),
-                    "logical_x": int(qt_screen.get("x", 0)),
-                    "logical_y": int(qt_screen.get("y", 0)),
-                    "logical_width": int(qt_screen.get("width", 0)),
-                    "logical_height": int(qt_screen.get("height", 0)),
-                    "capture_x": int(round(qt_screen.get("x", 0) * scale)),
-                    "capture_y": int(round(qt_screen.get("y", 0) * scale)),
-                    "capture_width": int(round(qt_screen.get("width", 0) * scale)),
-                    "capture_height": int(round(qt_screen.get("height", 0) * scale)),
-                })
+                capture_screens.append(
+                    {
+                        "index": index,
+                        "is_primary": bool(qt_screen.get("is_primary")),
+                        "logical_x": int(qt_screen.get("x", 0)),
+                        "logical_y": int(qt_screen.get("y", 0)),
+                        "logical_width": int(qt_screen.get("width", 0)),
+                        "logical_height": int(qt_screen.get("height", 0)),
+                        "capture_x": int(round(qt_screen.get("x", 0) * scale)),
+                        "capture_y": int(round(qt_screen.get("y", 0) * scale)),
+                        "capture_width": int(round(qt_screen.get("width", 0) * scale)),
+                        "capture_height": int(round(qt_screen.get("height", 0) * scale)),
+                    }
+                )
             return capture_screens
 
         try:
@@ -1362,23 +1427,29 @@ class MacOSAdapter(PlatformAdapter):
             capture_screens: List[Dict[str, Any]] = []
             for index, screen in enumerate(sorted_screens):
                 frame = screen.frame()
-                scale = float(screen.backingScaleFactor()) if hasattr(screen, "backingScaleFactor") else 1.0
+                scale = (
+                    float(screen.backingScaleFactor())
+                    if hasattr(screen, "backingScaleFactor")
+                    else 1.0
+                )
                 logical_x = int(frame.origin.x)
                 logical_y = int(frame.origin.y)
                 logical_width = int(frame.size.width)
                 logical_height = int(frame.size.height)
-                capture_screens.append({
-                    "index": index,
-                    "is_primary": screen == main_screen,
-                    "logical_x": logical_x,
-                    "logical_y": logical_y,
-                    "logical_width": logical_width,
-                    "logical_height": logical_height,
-                    "capture_x": int(round(logical_x * scale)),
-                    "capture_y": int(round(logical_y * scale)),
-                    "capture_width": int(round(logical_width * scale)),
-                    "capture_height": int(round(logical_height * scale)),
-                })
+                capture_screens.append(
+                    {
+                        "index": index,
+                        "is_primary": screen == main_screen,
+                        "logical_x": logical_x,
+                        "logical_y": logical_y,
+                        "logical_width": logical_width,
+                        "logical_height": logical_height,
+                        "capture_x": int(round(logical_x * scale)),
+                        "capture_y": int(round(logical_y * scale)),
+                        "capture_width": int(round(logical_width * scale)),
+                        "capture_height": int(round(logical_height * scale)),
+                    }
+                )
 
             return capture_screens
         except Exception as e:
@@ -1399,19 +1470,19 @@ class MacOSAdapter(PlatformAdapter):
                 }
                 for index, screen in enumerate(screens)
             ]
-    
+
     def get_screen_rect(self, screen_index: int) -> Tuple[int, int, int, int]:
         """
         获取指定屏幕的矩形区域
-        
+
         Args:
             screen_index: 屏幕索引
-        
+
         Returns:
             (x, y, width, height) 屏幕在虚拟桌面中的位置和尺寸
         """
         screens_info = self.get_all_screens_info()
         if 0 <= screen_index < len(screens_info):
             info = screens_info[screen_index]
-            return (info['x'], info['y'], info['width'], info['height'])
+            return (info["x"], info["y"], info["width"], info["height"])
         return (0, 0, 1920, 1080)

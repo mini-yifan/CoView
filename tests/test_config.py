@@ -3,6 +3,7 @@
 """
 
 import json
+from pathlib import Path
 
 import pytest
 from baodou_ai.core.config import Config, DEFAULT_CONFIG
@@ -17,7 +18,7 @@ def reset_config_singleton():
 
 class TestConfig:
     """配置类测试"""
-    
+
     def test_default_config_exists(self):
         """测试默认配置存在"""
         assert "api_config" in DEFAULT_CONFIG
@@ -58,7 +59,9 @@ class TestConfig:
         assert "companion_privacy_config" in DEFAULT_CONFIG
         assert DEFAULT_CONFIG["companion_privacy_config"]["enabled"] is True
         assert DEFAULT_CONFIG["companion_privacy_config"]["privacy_cooldown_seconds"] == 15
-        assert DEFAULT_CONFIG["companion_privacy_config"]["never_persist_review_screenshots"] is True
+        assert (
+            DEFAULT_CONFIG["companion_privacy_config"]["never_persist_review_screenshots"] is True
+        )
         assert DEFAULT_CONFIG["code_agent_config"]["provider"] == "codex"
         assert set(DEFAULT_CONFIG["code_agent_config"]["providers"]) == {
             "codex",
@@ -74,31 +77,53 @@ class TestConfig:
             "json",
             "--yolo",
         ]
-    
+
     def test_config_singleton(self):
         """测试配置单例模式"""
         config1 = Config()
         config2 = Config()
         assert config1 is config2
-    
+
     def test_config_get_method(self):
         """测试配置获取方法"""
         config = Config()
         value = config.get("api_config.base_url", "default")
         assert isinstance(value, str)
-    
+
     def test_config_set_method(self):
         """测试配置设置方法"""
         config = Config()
         config.set("test_key", "test_value")
         assert config.get("test_key") == "test_value"
 
+    def test_packaged_macos_app_uses_user_config_dir(self, monkeypatch, tmp_path):
+        class FakePlatformAdapter:
+            def is_app_bundle(self):
+                return True
+
+            def get_resource_path(self, relative_path):
+                return None
+
+        monkeypatch.setattr(
+            "baodou_ai.core.config.get_platform_adapter", lambda: FakePlatformAdapter()
+        )
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        config = Config.create_isolated()
+        config.set("api_config.api_key", "demo-key")
+
+        assert config.save() is True
+        assert (tmp_path / "Library" / "Application Support" / "CoView" / "config.json").exists()
+
     def test_model_api_key_missing_message_follows_locale_and_override(self):
         config = Config()
         config.set("locale_config.locale", "zh_CN")
         config.set("locale_config.respond_language", "")
 
-        assert config.get_model_api_key_missing_message() == "模型 API Key 未配置，请先在设置中填写接口密钥。"
+        assert (
+            config.get_model_api_key_missing_message()
+            == "模型 API Key 未配置，请先在设置中填写接口密钥。"
+        )
 
         config.set("locale_config.locale", "en_US")
         assert (
@@ -146,10 +171,12 @@ class TestConfig:
             encoding="utf-8",
         )
 
-        resolved_paths = iter([
-            str(tmp_path / "first-screen.png"),
-            str(tmp_path / "second-screen.png"),
-        ])
+        resolved_paths = iter(
+            [
+                str(tmp_path / "first-screen.png"),
+                str(tmp_path / "second-screen.png"),
+            ]
+        )
 
         class FakePlatformAdapter:
             def get_resource_path(self, relative_path):
@@ -157,7 +184,9 @@ class TestConfig:
                     return str(config_path)
                 return next(resolved_paths)
 
-        monkeypatch.setattr("baodou_ai.core.config.get_platform_adapter", lambda: FakePlatformAdapter())
+        monkeypatch.setattr(
+            "baodou_ai.core.config.get_platform_adapter", lambda: FakePlatformAdapter()
+        )
 
         config = Config.create_isolated(str(config_path))
         assert config.get_resolved_path("input_path") == str(tmp_path / "first-screen.png")
@@ -255,10 +284,11 @@ class TestConfig:
                     return str(resolved_dir)
                 return None
 
-        monkeypatch.setattr("baodou_ai.core.config.get_platform_adapter", lambda: FakePlatformAdapter())
+        monkeypatch.setattr(
+            "baodou_ai.core.config.get_platform_adapter", lambda: FakePlatformAdapter()
+        )
 
         config = Config.create_isolated(str(config_path))
-        assert (
-            config.resolve_resource_path("models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20")
-            == str(resolved_dir)
-        )
+        assert config.resolve_resource_path(
+            "models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20"
+        ) == str(resolved_dir)

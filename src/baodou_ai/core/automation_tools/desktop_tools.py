@@ -293,7 +293,7 @@ class DesktopToolsMixin:
         coordinates: List,
         duration: float,
         target_screen: Optional[Dict[str, Any]] = None,
-        end_screen: Optional[Dict[str, Any]] = None
+        end_screen: Optional[Dict[str, Any]] = None,
     ) -> Tuple[List, str]:
         """处理拖拽操作（支持跨屏幕）"""
         start_x, start_y = coordinates[0]
@@ -311,19 +311,19 @@ class DesktopToolsMixin:
         )
         start_x, start_y = start_coordinates
         end_x, end_y = end_coordinates
-        
+
         self._platform_adapter.drag_to(
             end_x,
             end_y,
             duration=max(self._get_smooth_move_duration(duration) * 4, 0.6),
             button="left",
         )
-        
+
         print(f"已完成拖拽操作: ({start_x}, {start_y}) -> ({end_x}, {end_y})")
         action_str += "已完成拖拽操作\n"
-        
+
         return [[start_x, start_y], [end_x, end_y]], action_str
-    
+
     def _handle_single_point(
         self,
         coordinates: Union[List, Tuple],
@@ -344,9 +344,7 @@ class DesktopToolsMixin:
         x, y = mapped_coordinates
 
         resolved_scroll_amount = (
-            int(scroll_amount)
-            if scroll_amount is not None
-            else self._resolve_scroll_amount()
+            int(scroll_amount) if scroll_amount is not None else self._resolve_scroll_amount()
         )
 
         def perform_long_press() -> Tuple[None, str]:
@@ -359,23 +357,32 @@ class DesktopToolsMixin:
             if not completed:
                 raise RuntimeError("长按已中断")
             return None, f"已长按 {hold_seconds:g} 秒"
-        
+
         action_handlers = {
             "click": lambda: (self._platform_adapter.click(button="left"), "已点击"),
-            "double_click": lambda: (self._platform_adapter.click(button="left", clicks=2), "已双击"),
+            "double_click": lambda: (
+                self._platform_adapter.click(button="left", clicks=2),
+                "已双击",
+            ),
             "long_press": perform_long_press,
             "right_click": lambda: (self._platform_adapter.click(button="right"), "已右键点击"),
-            "scroll_up": lambda: (self._platform_adapter.scroll(resolved_scroll_amount), f"已向上滚动 {resolved_scroll_amount}"),
-            "scroll_down": lambda: (self._platform_adapter.scroll(-resolved_scroll_amount), f"已向下滚动 {resolved_scroll_amount}"),
+            "scroll_up": lambda: (
+                self._platform_adapter.scroll(resolved_scroll_amount),
+                f"已向上滚动 {resolved_scroll_amount}",
+            ),
+            "scroll_down": lambda: (
+                self._platform_adapter.scroll(-resolved_scroll_amount),
+                f"已向下滚动 {resolved_scroll_amount}",
+            ),
         }
-        
+
         if action in action_handlers:
             handler_result, action_msg = action_handlers[action]()
             print(f"{action_msg} ({x}, {y})")
             action_str += f"{action_msg}\n"
         else:
             print(f"未知操作: {action}")
-        
+
         return [x, y], action_str
 
     def _backup_clipboard_text(self) -> Tuple[bool, str]:
@@ -422,60 +429,55 @@ class DesktopToolsMixin:
                 if replace:
                     if self._current_os == "Darwin":
                         automation_exports().time.sleep(0.1)
-                        automation_exports().pyautogui.keyDown("command")
+                        self._platform_adapter.key_down("command")
                         automation_exports().time.sleep(0.1)
-                        automation_exports().pyautogui.press("a")
+                        self._platform_adapter.key_press("a")
                         automation_exports().time.sleep(0.1)
-                        automation_exports().pyautogui.keyUp("command")
+                        self._platform_adapter.key_up("command")
                     else:
                         automation_exports().pyautogui.hotkey("ctrl", "a")
-            
+
             if self._current_os == "Darwin":
                 automation_exports().time.sleep(0.1)
-                automation_exports().pyautogui.keyDown("command")
+                self._platform_adapter.key_down("command")
                 automation_exports().time.sleep(0.1)
-                automation_exports().pyautogui.press("v")
+                self._platform_adapter.key_press("v")
                 automation_exports().time.sleep(0.1)
-                automation_exports().pyautogui.keyUp("command")
+                self._platform_adapter.key_up("command")
             else:
                 automation_exports().pyautogui.hotkey("ctrl", "v")
-            
+
             print(f"已粘贴: {type_information}")
             automation_exports().time.sleep(0.2)
-            
+
             if submit:
-                automation_exports().pyautogui.press("enter")
+                self._platform_adapter.key_press("enter")
                 automation_exports().time.sleep(0.3)
                 print("已提交")
                 return f"已提交: {type_information}\n"
-            
+
             print("已输入（未按回车）")
             return f"已输入: {type_information}\n"
         finally:
             self._restore_clipboard_text(has_backup, previous_clipboard)
-    
+
     def click(self, x: float, y: float, duration: float = 0.1) -> None:
         """点击指定坐标"""
         self._move_cursor_smooth(x, y, duration)
         self._platform_adapter.click(button="left")
-    
+
     def double_click(self, x: float, y: float, duration: float = 0.1) -> None:
         """双击指定坐标"""
         self._move_cursor_smooth(x, y, duration)
         self._platform_adapter.click(button="left", clicks=2)
-    
+
     def right_click(self, x: float, y: float, duration: float = 0.1) -> None:
         """右键点击指定坐标"""
         self._move_cursor_smooth(x, y, duration)
         self._platform_adapter.click(button="right")
-    
+
     def drag(
-        self,
-        start_x: float,
-        start_y: float,
-        end_x: float,
-        end_y: float,
-        duration: float = 0.1
+        self, start_x: float, start_y: float, end_x: float, end_y: float, duration: float = 0.1
     ) -> None:
         """从起点拖拽到终点"""
         self._move_cursor_smooth(start_x, start_y, duration)
@@ -485,21 +487,21 @@ class DesktopToolsMixin:
             duration=max(self._get_smooth_move_duration(duration) * 4, 0.6),
             button="left",
         )
-    
+
     def type_text(self, text: str) -> None:
         """输入文本"""
         has_backup, previous_clipboard = self._backup_clipboard_text()
         try:
             automation_exports().pyperclip.copy(text)
             if self._current_os == "Darwin":
-                automation_exports().pyautogui.keyDown("command")
-                automation_exports().pyautogui.press("v")
-                automation_exports().pyautogui.keyUp("command")
+                self._platform_adapter.key_down("command")
+                self._platform_adapter.key_press("v")
+                self._platform_adapter.key_up("command")
             else:
                 automation_exports().pyautogui.hotkey("ctrl", "v")
         finally:
             self._restore_clipboard_text(has_backup, previous_clipboard)
-    
+
     def hotkey(self, *keys: str) -> None:
         """执行快捷键"""
         keys = self._platform_adapter.translate_hotkey_keys(list(keys))
@@ -511,15 +513,15 @@ class DesktopToolsMixin:
         try:
             for key in keys[:-1]:
                 if key in modifier_keys:
-                    automation_exports().pyautogui.keyDown(key)
+                    self._platform_adapter.key_down(key)
                     held_modifiers.append(key)
                 else:
-                    automation_exports().pyautogui.press(key)
-            automation_exports().pyautogui.press(keys[-1])
+                    self._platform_adapter.key_press(key)
+            self._platform_adapter.key_press(keys[-1])
         finally:
             for key in reversed(held_modifiers):
-                automation_exports().pyautogui.keyUp(key)
-    
+                self._platform_adapter.key_up(key)
+
     def scroll(self, amount: int, x: Optional[float] = None, y: Optional[float] = None) -> None:
         """滚动滚轮"""
         if x is not None and y is not None:
