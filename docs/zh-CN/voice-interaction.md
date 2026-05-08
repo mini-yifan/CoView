@@ -4,7 +4,7 @@
 
 ## 主流程
 
-1. 本地唤醒词监听 `你好彤彤` 或 `hello Lulu`。
+1. 本地唤醒词监听 `你好小彤` 或 `hey Lucy`。
 2. 命中唤醒词后，悬浮面板出现并显示语音状态。
 3. 麦克风输入经过本地 VAD 和可选 WebRTC 回声消除。
 4. `QwenRealtimeAsrClient` 把音频发送到 DashScope 实时 ASR，并接收转写文本。
@@ -17,7 +17,7 @@
 
 | 目的 | 默认口令 |
 | --- | --- |
-| 唤醒词 | `你好彤彤`、`hello Lulu` |
+| 唤醒词 | `你好小彤`、`hey Lucy` |
 | 语音退出同窗 | `退出程序` |
 | 英文退出同窗 | `exit program`、`quit app`，以及其他 `close/exit/quit program/app` 类指令 |
 | 空闲时收起面板 | `退下吧` |

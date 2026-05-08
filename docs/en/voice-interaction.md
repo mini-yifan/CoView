@@ -4,7 +4,7 @@ CoView voice mode is designed for natural desktop collaboration: wake it, speak 
 
 ## Main Flow
 
-1. Local wake-word detection listens for `你好彤彤` or `hello Lulu`.
+1. Local wake-word detection listens for `你好小彤` or `hey Lucy`.
 2. The floating panel opens and shows the voice indicator.
 3. Microphone input passes through local VAD and optional WebRTC echo cancellation.
 4. `QwenRealtimeAsrClient` sends audio to DashScope realtime ASR and receives transcripts.
@@ -17,7 +17,7 @@ CoView voice mode is designed for natural desktop collaboration: wake it, speak 
 
 | Purpose | Default commands |
 | --- | --- |
-| Wake word | `你好彤彤`, `hello Lulu` |
+| Wake word | `你好小彤`, `hey Lucy` |
 | Quit CoView by voice | `exit program`, `quit app`, or similar `close/exit/quit program/app` commands |
 | Chinese quit command | `退出程序` |
 | Dismiss while idle | Chinese: `退下吧`; English dismissal is represented as `dismiss` in the flow diagram |

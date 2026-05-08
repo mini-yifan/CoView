@@ -59,6 +59,8 @@
   <img src="flow/voice_flow_zh.png" alt="同窗语音交互流程图" width="900">
 </p>
 
+默认唤醒词：`你好小彤` 和 `hey Lucy`。
+
 ## 快速开始
 
 环境要求：
@@ -154,4 +156,3 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ## License
 
 同窗基于 [MIT License](LICENSE) 开源。
-

@@ -4,7 +4,7 @@ This is a README-ready promotional flow for CoView's voice interaction. It keeps
 
 ```mermaid
 flowchart TD
-    A["🎙️ Wake<br/>你好彤彤 / hello Lulu"] --> B["🪟 CoView Opens<br/>floating panel + voice indicator"]
+    A["🎙️ Wake<br/>你好小彤 / hey Lucy"] --> B["🪟 CoView Opens<br/>floating panel + voice indicator"]
     B --> C["👂 Listen<br/>microphone + VAD + echo cancellation"]
     C --> D["✍️ Understand Speech<br/>Qwen realtime ASR transcript"]
     D --> E{"🧭 What did you mean?"}
@@ -33,7 +33,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["🎙️ 唤醒<br/>你好彤彤 / hello Lulu"] --> B["🪟 同窗出现<br/>悬浮面板 + 语音状态提示"]
+    A["🎙️ 唤醒<br/>你好小彤 / hey Lucy"] --> B["🪟 同窗出现<br/>悬浮面板 + 语音状态提示"]
     B --> C["👂 聆听<br/>麦克风 + VAD + 回声消除"]
     C --> D["✍️ 语音转文字<br/>Qwen 实时 ASR 转写"]
     D --> E{"🧭 理解意图"}
@@ -58,4 +58,4 @@ flowchart TD
 
 ## README Copy
 
-CoView's voice mode is designed for natural desktop collaboration. You can wake it with `你好彤彤` or `hello Lulu`, speak a task, interrupt while it is working, stop speech or actions, and let it respond through TTS after the desktop agent finishes each step.
+CoView's voice mode is designed for natural desktop collaboration. You can wake it with `你好小彤` or `hey Lucy`, speak a task, interrupt while it is working, stop speech or actions, and let it respond through TTS after the desktop agent finishes each step.

@@ -59,6 +59,8 @@ That means CoView is not limited to chat. It can operate browsers, editors, docu
   <img src="flow/voice_flow.png" alt="CoView voice interaction flow" width="900">
 </p>
 
+Default wake words: `你好小彤` and `hey Lucy`.
+
 ## Quick Start
 
 Requirements:
@@ -154,4 +156,3 @@ Create a background code-agent task to inspect this repository's test structure.
 ## License
 
 CoView is released under the [MIT License](LICENSE).
-

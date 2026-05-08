@@ -820,7 +820,7 @@ def test_wake_word_hit_activates_voice_chain_and_stops_wake_word():
         controller_module.QTimer.singleShot = lambda _delay, callback: callback()
         try:
             controller._handle_wake_word_hit(
-                WakeWordHit(text="hello Lulu", language="en", score=0.9, detected_at=1.0)
+                WakeWordHit(text="hey Lucy", language="en", score=0.9, detected_at=1.0)
             )
         finally:
             controller_module.QTimer.singleShot = original_single_shot
@@ -860,7 +860,7 @@ def test_wake_word_hit_sets_chinese_voice_session_language():
     controller.activate_from_hotkey = _activate
 
     controller._handle_wake_word_hit(
-        WakeWordHit(text="你好彤彤", language="zh", score=0.9, detected_at=1.0)
+        WakeWordHit(text="你好小彤", language="zh", score=0.9, detected_at=1.0)
     )
 
     assert controller._active_wake_word_language == "zh"
@@ -1647,8 +1647,8 @@ def test_control_console_wake_word_phrase_widgets_save_and_restore(monkeypatch, 
     config = Config.create_isolated(str(config_path))
     window = ControlConsoleWindow(config, RuntimeLogBuffer())
 
-    assert window._wake_word_phrase_widgets["zh"].text() == "你好彤彤"
-    assert window._wake_word_phrase_widgets["en"].text() == "hello Lulu"
+    assert window._wake_word_phrase_widgets["zh"].text() == "你好小彤"
+    assert window._wake_word_phrase_widgets["en"].text() == "hey Lucy"
 
     window._set_wake_word_phrase("zh", "你好同窗")
     window._set_wake_word_phrase("en", "Hey CoView")

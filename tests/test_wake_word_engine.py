@@ -113,13 +113,13 @@ class _FakeSpotter:
 
 def test_sherpa_keyword_spotter_returns_hit_and_resets_stream():
     backend = _FakeKeywordBackend(
-        [{"keyword": "COVIEW_en_1_hello_Lulu", "score": 0.86, "language": "en"}]
+        [{"keyword": "COVIEW_en_1_hey_Lucy", "score": 0.86, "language": "en"}]
     )
     spotter = SherpaKeywordSpotter(
         SherpaKeywordSpotterSettings(
             phrases=(
-                WakeWordPhrase(text="你好彤彤", language="zh", label="COVIEW_zh_0_你好彤彤"),
-                WakeWordPhrase(text="hello Lulu", language="en", label="COVIEW_en_1_hello_Lulu"),
+                WakeWordPhrase(text="你好小彤", language="zh", label="COVIEW_zh_0_你好小彤"),
+                WakeWordPhrase(text="hey Lucy", language="en", label="COVIEW_en_1_hey_Lucy"),
             ),
             threshold=0.5,
             sample_rate=16000,
@@ -131,7 +131,7 @@ def test_sherpa_keyword_spotter_returns_hit_and_resets_stream():
 
     hit = spotter.process_audio(_pcm(1200))
 
-    assert hit == WakeWordHit(text="hello Lulu", language="en", score=0.86, detected_at=12.5)
+    assert hit == WakeWordHit(text="hey Lucy", language="en", score=0.86, detected_at=12.5)
     assert backend.reset_calls == 1
     assert backend.stream.waveforms[0][0] == 16000
     assert backend.stream.waveforms[0][1].dtype == np.float32
@@ -146,16 +146,16 @@ def test_sherpa_keyword_spotter_generates_keywords_text_with_labels(tmp_path, mo
     class _FakeSherpaModule:
         @staticmethod
         def text2token(texts, **kwargs):
-            assert texts == ["你好彤彤", "HELLO LULU"]
+            assert texts == ["你好小彤", "HEY LUCY"]
             assert kwargs["tokens"] == str(model_dir / "tokens.txt")
             assert kwargs["lexicon"] == str(model_dir / "en.phone")
-            return [["n", "i3", "hao3"], ["HH", "AH0", "L", "UW1", "L", "UW1"]]
+            return [["n", "i3", "hao3", "xiao3", "tong2"], ["HH", "EY1", "L", "UW1", "S", "IY0"]]
 
     monkeypatch.setitem(sys.modules, "sherpa_onnx", _FakeSherpaModule())
     settings = SherpaKeywordSpotterSettings(
         phrases=(
-            WakeWordPhrase(text="你好彤彤", language="zh", label="COVIEW_zh_0_你好彤彤"),
-            WakeWordPhrase(text="hello Lulu", language="en", label="COVIEW_en_1_hello_Lulu"),
+            WakeWordPhrase(text="你好小彤", language="zh", label="COVIEW_zh_0_你好小彤"),
+            WakeWordPhrase(text="hey Lucy", language="en", label="COVIEW_en_1_hey_Lucy"),
         ),
         model_dir=str(model_dir),
     )
@@ -163,15 +163,15 @@ def test_sherpa_keyword_spotter_generates_keywords_text_with_labels(tmp_path, mo
 
     keywords_text = spotter._build_keywords_text(settings)
 
-    assert "n i3 hao3 @COVIEW_zh_0_你好彤彤" in keywords_text
-    assert "HH AH0 L UW1 L UW1 @COVIEW_en_1_hello_Lulu" in keywords_text
+    assert "n i3 hao3 xiao3 tong2 @COVIEW_zh_0_你好小彤" in keywords_text
+    assert "HH EY1 L UW1 S IY0 @COVIEW_en_1_hey_Lucy" in keywords_text
 
 
 def test_sherpa_keyword_spotter_filters_low_score_hits():
-    backend = _FakeKeywordBackend([{"keyword": "你好彤彤", "score": 0.2}])
+    backend = _FakeKeywordBackend([{"keyword": "你好小彤", "score": 0.2}])
     spotter = SherpaKeywordSpotter(
         SherpaKeywordSpotterSettings(
-            phrases=(SimpleNamespace(text="你好彤彤", language="zh"),),
+            phrases=(SimpleNamespace(text="你好小彤", language="zh"),),
             threshold=0.5,
         ),
         backend_factory=lambda settings: backend,
@@ -190,7 +190,7 @@ def test_wake_word_engine_transitions_triggered_to_cooldown_to_listening():
     statuses = []
     fake_spotter = _FakeSpotter(
         settings=None,
-        results=[WakeWordHit(text="你好彤彤", language="zh", detected_at=clock())],
+        results=[WakeWordHit(text="你好小彤", language="zh", detected_at=clock())],
     )
     config = Config.create_isolated()
     config.set("wake_word_config.enabled", True)
@@ -284,8 +284,8 @@ def test_wake_word_engine_refresh_config_restarts_with_new_settings():
     config.set(
         "wake_word_config.phrases",
         [
-            {"text": "你好彤彤", "language": "zh"},
-            {"text": "hello Lulu", "language": "en"},
+            {"text": "你好小彤", "language": "zh"},
+            {"text": "hey Lucy", "language": "en"},
         ],
     )
 

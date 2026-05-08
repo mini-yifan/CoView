@@ -175,11 +175,11 @@ DEFAULT_CONFIG = {
         "provider": "sherpa_onnx",
         "phrases": [
             {
-                "text": "你好彤彤",
+                "text": "你好小彤",
                 "language": "zh"
             },
             {
-                "text": "hello Lulu",
+                "text": "hey Lucy",
                 "language": "en"
             }
         ],

@@ -873,12 +873,12 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_wake_word.add_row(
             t("wake_word_phrase_zh_label"),
-            self._register_wake_word_phrase_widget("zh", self._styled_line_edit("你好彤彤")),
+            self._register_wake_word_phrase_widget("zh", self._styled_line_edit("你好小彤")),
             t("wake_word_phrase_zh_desc"),
         )
         card_wake_word.add_row(
             t("wake_word_phrase_en_label"),
-            self._register_wake_word_phrase_widget("en", self._styled_line_edit("hello Lulu")),
+            self._register_wake_word_phrase_widget("en", self._styled_line_edit("hey Lucy")),
             t("wake_word_phrase_en_desc"),
         )
         card_wake_word.add_row(

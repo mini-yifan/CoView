@@ -44,8 +44,8 @@ class TestConfig:
         assert DEFAULT_CONFIG["wake_word_config"]["enabled"] is True
         assert DEFAULT_CONFIG["wake_word_config"]["provider"] == "sherpa_onnx"
         assert DEFAULT_CONFIG["wake_word_config"]["phrases"] == [
-            {"text": "你好彤彤", "language": "zh"},
-            {"text": "hello Lulu", "language": "en"},
+            {"text": "你好小彤", "language": "zh"},
+            {"text": "hey Lucy", "language": "en"},
         ]
         assert DEFAULT_CONFIG["wake_word_config"]["threshold"] == 0.5
         assert DEFAULT_CONFIG["wake_word_config"]["cooldown_ms"] == 1500
@@ -161,8 +161,8 @@ class TestConfig:
 
         assert config.get("api_config.api_key") == "demo-key"
         assert config.wake_word_config["enabled"] is True
-        assert config.get_wake_word_phrase("zh") == "你好彤彤"
-        assert config.get_wake_word_phrase("en") == "hello Lulu"
+        assert config.get_wake_word_phrase("zh") == "你好小彤"
+        assert config.get_wake_word_phrase("en") == "hey Lucy"
 
     def test_invalid_wake_word_config_falls_back_to_defaults(self, tmp_path):
         config_path = tmp_path / "config.json"
@@ -192,8 +192,8 @@ class TestConfig:
         assert config.wake_word_config["enabled"] is False
         assert config.wake_word_config["provider"] == "sherpa_onnx"
         assert config.wake_word_config["phrases"] == [
-            {"text": "你好彤彤", "language": "zh"},
-            {"text": "hello Lulu", "language": "en"},
+            {"text": "你好小彤", "language": "zh"},
+            {"text": "hey Lucy", "language": "en"},
         ]
         assert config.wake_word_config["threshold"] == 0.5
         assert config.wake_word_config["cooldown_ms"] == 0
@@ -217,7 +217,7 @@ class TestConfig:
         assert reloaded.get_wake_word_phrase("en") == "Hey CoView"
 
         reloaded.set_wake_word_phrase("zh", "")
-        assert reloaded.get_wake_word_phrase("zh") == "你好彤彤"
+        assert reloaded.get_wake_word_phrase("zh") == "你好小彤"
 
     def test_resolve_resource_path_prefers_platform_lookup(self, monkeypatch, tmp_path):
         config_path = tmp_path / "config.json"

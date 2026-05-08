@@ -707,7 +707,7 @@ def test_wake_word_listening_prompt_uses_default_phrases(tmp_path):
     )
 
     assert controller._applied_indicators == [("wake_listening", 0.0)]
-    assert controller.toast_window.messages == [(controller.ball_anchor, "待唤醒: 你好彤彤 / hello Lulu")]
+    assert controller.toast_window.messages == [(controller.ball_anchor, "待唤醒: 你好小彤 / hey Lucy")]
 
 
 def test_wake_word_listening_prompt_uses_custom_phrases(tmp_path):

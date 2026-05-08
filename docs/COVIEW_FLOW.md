@@ -77,7 +77,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph Voice["🎙️ Voice Interaction"]
-        WAKE["WakeWordEngine<br/>local sherpa-onnx wake words: 你好彤彤 / hello Lulu"]
+        WAKE["WakeWordEngine<br/>local sherpa-onnx wake words: 你好小彤 / hey Lucy"]
         ASR["QwenRealtimeAsrClient<br/>DashScope realtime ASR"]
         INTENT["VoiceIntentClassifier<br/>stop / new_task / ignore / voice exit"]
         TTS["CosyVoiceTTS<br/>spoken reports and acknowledgements"]

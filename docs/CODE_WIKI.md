@@ -256,7 +256,7 @@ flowchart LR
 本地语音唤醒相关配置：
 
 - `wake_word_config.enabled`：是否启用本地语音唤醒
-- `wake_word_config.phrases`：默认唤醒词为 `你好彤彤` 与 `hello Lulu`
+- `wake_word_config.phrases`：默认唤醒词为 `你好小彤` 与 `hey Lucy`
 - `wake_word_config.model_dir`：默认模型目录为 `models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20`
 - `Config.resolve_resource_path()`：将相对资源路径解析为运行时绝对路径，供本地模型目录和关键词文件使用
 
