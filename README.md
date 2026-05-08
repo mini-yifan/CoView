@@ -112,6 +112,16 @@ CoView reads `config.json` from the repository root and merges it with defaults 
 
 Do not commit real API keys to a public repository.
 
+Default model services:
+
+| Capability | Default Provider / Model | Notes |
+| --- | --- | --- |
+| Visual language model | Alibaba Cloud Model Studio / `qwen3.6-35b-a3b` | Can be changed to another OpenAI-compatible visual model provider. |
+| Realtime ASR | Alibaba Cloud Model Studio / `qwen3-asr-flash-realtime` | Provider switching is not supported yet. |
+| TTS | Alibaba Cloud Model Studio / `cosyvoice-v3-flash` | Provider switching is not supported yet. |
+
+Apply for the API key from [Alibaba Cloud Model Studio](https://www.alibabacloud.com/help/zh/model-studio/get-api-key). The same DashScope API key is used for the default visual model, [ASR](https://help.aliyun.com/zh/model-studio/asr-model/), and [TTS](https://www.alibabacloud.com/help/zh/model-studio/text-to-speech). Support for additional ASR and TTS providers will be added gradually.
+
 ### 5. Run the App
 
 | Goal                   | macOS                                                           | Windows                                              |

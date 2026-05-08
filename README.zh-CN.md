@@ -112,6 +112,16 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 不要把真实 API Key 提交到公开仓库。
 
+默认模型服务：
+
+| 能力 | 默认服务 / 模型 | 说明 |
+| --- | --- | --- |
+| 视觉大模型 | 阿里云百炼 / `qwen3.6-35b-a3b` | 可以更改为其他兼容 OpenAI 接口、且支持视觉识别的大模型。 |
+| 实时 ASR | 阿里云百炼 / `qwen3-asr-flash-realtime` | 目前暂不支持切换其他厂商。 |
+| TTS 语音合成 | 阿里云百炼 / `cosyvoice-v3-flash` | 目前暂不支持切换其他厂商。 |
+
+API Key 可在 [阿里云百炼](https://www.alibabacloud.com/help/zh/model-studio/get-api-key) 申请。默认视觉大模型、[ASR 语音识别](https://help.aliyun.com/zh/model-studio/asr-model/) 和 [TTS 语音合成](https://www.alibabacloud.com/help/zh/model-studio/text-to-speech) 使用的是同一个 DashScope API Key。后续会陆续增加其他厂商的 ASR 和 TTS 支持。
+
 ### 5. 启动
 
 | 目标              | macOS                                             | Windows                                         |
