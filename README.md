@@ -121,6 +121,16 @@ Do not commit real API keys to a public repository.
 | Limit task steps       | `coview-cli "Summarize the current page" --max-iterations 20` | `coview-cli "Open Calculator" --max-iterations 20` |
 | Stop a CLI task        | `Ctrl+C`                                                      | `Ctrl+C`                                           |
 
+### Voice Wakeup
+
+To use hands-free wakeup, download the local wake-word model first:
+
+| macOS / Linux                                   | Windows                                    |
+| ----------------------------------------------- | ------------------------------------------ |
+| `python3 scripts/download_wake_word_model.py` | `py scripts\download_wake_word_model.py` |
+
+Default wake words are `你好小彤` and `hey Lucy`. Say `close program`, `quit app`, or similar `close/exit/quit program/app` commands to quit CoView by voice.
+
 ## First Interaction in 60 Seconds
 
 1. Start the GUI with `coview`.

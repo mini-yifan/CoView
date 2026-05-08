@@ -121,6 +121,16 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 | 限制最大执行步数  | `coview-cli "总结当前页面" --max-iterations 20` | `coview-cli "打开计算器" --max-iterations 20` |
 | 停止 CLI 任务     | `Ctrl+C`                                        | `Ctrl+C`                                      |
 
+### 语音唤醒
+
+如果需要免手动唤醒，先下载本地唤醒词模型：
+
+| macOS / Linux                                  | Windows                                  |
+| ---------------------------------------------- | ---------------------------------------- |
+| `python3 scripts/download_wake_word_model.py` | `py scripts\download_wake_word_model.py` |
+
+默认唤醒词是 `你好小彤` 和 `hey Lucy`。说 `退出程序` 可以通过语音退出同窗；英文支持 `exit program`、`quit app` 等 `close/exit/quit program/app` 类指令。
+
 ## 60 秒上手交互
 
 1. 运行 `coview` 启动悬浮助手。
