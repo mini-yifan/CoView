@@ -37,14 +37,16 @@ That means CoView is not limited to chat. It can operate browsers, editors, docu
 
 | Capability | What CoView Does |
 | --- | --- |
-| See | Observes your desktop through screenshots, with multi-display support and visual reasoning. |
-| Act | Operates real software with clicks, drags, scrolling, hotkeys, text input, browser opening, and page/document reading. |
-| Collaborate | Works from a floating assistant UI with task input, stop control, runtime logs, settings, language switching, and companion suggestions. |
-| Listen & Respond | Supports ASR, TTS, local wake-word detection, and visual recording indicators. |
-| Background Code Agent | Runs coding and automation jobs in the background through providers such as Codex, Claude, Kimi, Qwen, and CodeBuddy. |
-| Cross Platform | Provides adapters for macOS and Windows. |
-| Model Flexible | Uses OpenAI-compatible model endpoints through `base_url`, `api_key`, and `model_name`. |
-| Developer Ready | Ships as a testable Python package with CLI and embeddable API. |
+| 👀 See | Observes your desktop through screenshots, with visual reasoning and screenshot backend fallback. |
+| 🖥️ Multi-Screen Control | Understands and operates across multiple displays instead of being limited to one screen. |
+| 🖱️ Act | Operates real software with clicks, drags, scrolling, hotkeys, text input, browser opening, and page/document reading. |
+| 🤝 Collaborate | Works from a floating assistant UI with task input, stop control, runtime logs, settings, and companion suggestions. |
+| 🎙️ Listen & Respond | Supports ASR, TTS, local wake-word detection, and visual recording indicators. |
+| 🌐 Chinese & English | Provides bilingual interface text and workflows for Chinese and English users. |
+| 🧑‍💻 Background Code Agent | Runs coding and automation jobs in the background through providers such as Codex, Claude, Kimi, Qwen, and CodeBuddy. |
+| 🧩 Cross Platform | Provides adapters for macOS and Windows. |
+| 🔌 Model Flexible | Uses OpenAI-compatible model endpoints through `base_url`, `api_key`, and `model_name`. |
+| 🛠️ Developer Ready | Ships as a testable Python package with CLI and embeddable API. |
 
 ## Status
 
@@ -159,8 +161,18 @@ Voice workflow:
 - Enable voice input in Settings.
 - Configure `voice_interaction_config.asr_api_key` for ASR and `tts_config.api_key` for speech output.
 - Download the local wake-word model if you want hands-free wakeup.
-- Default wake words are configured under `wake_word_config.phrases`.
+- Default wake words are `你好彤彤` and `hello Lulu`; they can be changed under `wake_word_config.phrases`.
+- Say `exit program`, `quit app`, or similar `close/exit/quit program/app` commands to quit CoView by voice. The Chinese command is `退出程序`.
 - WebRTC echo cancellation depends on `aec-audio-processing`, which is only installed on Python 3.11+ by the current project markers.
+
+Default interaction shortcuts:
+
+| Action | macOS | Windows |
+| --- | --- | --- |
+| Show / focus CoView | `Command+Shift+Space` | `Ctrl+Alt+Space` |
+| Collapse the floating panel | `Command+Shift+Y` | `Ctrl+Alt+Enter` |
+| Submit the typed task | `Enter` | `Enter` |
+| Stop the current task | Stop button or show/focus shortcut while running | Stop button or show/focus shortcut while running |
 
 ## Wake-Word Model
 

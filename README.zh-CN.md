@@ -35,16 +35,18 @@
 
 ## 核心能力
 
-| 能力 | 同窗可以做什么 |
-| --- | --- |
-| 看见桌面 | 基于截图观察和视觉推理，支持多屏幕和截图后端回退。 |
-| 操作电脑 | 点击、拖拽、滚动、快捷键、输入文本、读取页面/文档、打开浏览器。 |
-| 与人协作 | 通过悬浮助手提供任务输入、停止控制、运行日志、设置窗口、语言切换和伴随推荐。 |
-| 听见并回应 | 支持 ASR 识别、TTS 播报、本地唤醒词和录音状态提示。 |
-| 后台 Code Agent | 在后台运行代码与自动化任务，支持 Codex、Claude、Kimi、Qwen、CodeBuddy 等 provider。 |
-| 跨平台 | 适配 macOS 和 Windows。 |
-| 模型灵活 | 支持 OpenAI-compatible 模型接口，通过 `base_url`、`api_key`、`model_name` 配置。 |
-| 易于集成 | 可作为 Python 包嵌入，也可以直接通过 CLI 或 GUI 使用。 |
+| 能力                   | 同窗可以做什么                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| 👀 看见桌面            | 基于截图观察和视觉推理，支持截图后端回退。                                             |
+| 🖥️ 多屏幕操作        | 能理解并操作多个显示器上的窗口和内容，不局限于单一屏幕。                               |
+| 🖱️ 操作电脑          | 点击、拖拽、滚动、快捷键、输入文本、读取页面/文档、打开浏览器。                        |
+| 🤝 与人协作            | 通过悬浮助手提供任务输入、停止控制、运行日志、设置窗口和伴随推荐。                     |
+| 🎙️ 听见并回应        | 支持 ASR 识别、TTS 播报、本地唤醒词和录音状态提示。                                    |
+| 🌐 中英文支持          | 提供中英文界面文案与使用流程，适配中文和英文用户。                                     |
+| 🧑‍💻 后台 Code Agent | 在后台运行代码与自动化任务，支持 Codex、Claude、Kimi、Qwen、CodeBuddy 等 provider。    |
+| 🧩 跨平台              | 适配 macOS 和 Windows。                                                                |
+| 🔌 模型灵活            | 支持 OpenAI-compatible 模型接口，通过 `base_url`、`api_key`、`model_name` 配置。 |
+| 🛠️ 易于集成          | 可作为 Python 包嵌入，也可以直接通过 CLI 或 GUI 使用。                                 |
 
 ## 当前状态
 
@@ -60,16 +62,16 @@
 
 ### 1. 克隆仓库
 
-| macOS / Linux | Windows PowerShell |
-| --- | --- |
+| macOS / Linux                                          | Windows PowerShell                                     |
+| ------------------------------------------------------ | ------------------------------------------------------ |
 | `git clone https://github.com/mini-yifan/CoView.git` | `git clone https://github.com/mini-yifan/CoView.git` |
-| `cd CoView` | `cd CoView` |
+| `cd CoView`                                          | `cd CoView`                                          |
 
 ### 2. 创建并激活虚拟环境
 
-| macOS / Linux | Windows PowerShell |
-| --- | --- |
-| `python3 -m venv .venv` | `py -3 -m venv .venv` |
+| macOS / Linux                 | Windows PowerShell             |
+| ----------------------------- | ------------------------------ |
+| `python3 -m venv .venv`     | `py -3 -m venv .venv`        |
 | `source .venv/bin/activate` | `.venv\Scripts\Activate.ps1` |
 
 如果 PowerShell 阻止激活虚拟环境，可以在当前 PowerShell 窗口执行：
@@ -80,15 +82,15 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ### 3. 安装项目
 
-| macOS | Windows |
-| --- | --- |
-| `python3 -m pip install -U pip` | `py -m pip install -U pip` |
+| macOS                                              | Windows                                 |
+| -------------------------------------------------- | --------------------------------------- |
+| `python3 -m pip install -U pip`                  | `py -m pip install -U pip`            |
 | `python3 -m pip install -e ".[macos,voice,tts]"` | `py -m pip install -e ".[voice,tts]"` |
 
 如果你要参与开发，安装开发依赖：
 
-| macOS | Windows |
-| --- | --- |
+| macOS                                                  | Windows                                     |
+| ------------------------------------------------------ | ------------------------------------------- |
 | `python3 -m pip install -e ".[macos,voice,tts,dev]"` | `py -m pip install -e ".[voice,tts,dev]"` |
 
 ### 4. 配置模型
@@ -115,24 +117,24 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ### 5. 启动
 
-| 目标 | macOS | Windows |
-| --- | --- | --- |
-| 启动悬浮 GUI | `coview` | `coview` |
-| 执行一个 CLI 任务 | `coview-cli "打开浏览器并搜索上海天气"` | `coview-cli "打开记事本并输入 Hello"` |
-| 限制最大执行步数 | `coview-cli "总结当前页面" --max-iterations 20` | `coview-cli "打开计算器" --max-iterations 20` |
-| 停止 CLI 任务 | `Ctrl+C` | `Ctrl+C` |
+| 目标              | macOS                                             | Windows                                         |
+| ----------------- | ------------------------------------------------- | ----------------------------------------------- |
+| 启动悬浮 GUI      | `coview`                                        | `coview`                                      |
+| 执行一个 CLI 任务 | `coview-cli "打开浏览器并搜索上海天气"`         | `coview-cli "打开记事本并输入 Hello"`         |
+| 限制最大执行步数  | `coview-cli "总结当前页面" --max-iterations 20` | `coview-cli "打开计算器" --max-iterations 20` |
+| 停止 CLI 任务     | `Ctrl+C`                                        | `Ctrl+C`                                      |
 
 ## macOS 与 Windows 命令差异
 
-| 主题 | macOS | Windows |
-| --- | --- | --- |
-| Python 命令 | 通常是 `python3` | 通常是 `py` 或 `python` |
-| 虚拟环境激活 | `source .venv/bin/activate` | `.venv\Scripts\Activate.ps1` |
-| 路径格式 | `/Users/name/project` | `C:\Users\name\project` |
-| 复制粘贴快捷键 | `Command+C`、`Command+V` | `Ctrl+C`、`Ctrl+V` |
-| 自动化权限 | 在系统设置中开启辅助功能、屏幕录制、麦克风权限 | 普通应用可直接运行；如需控制管理员窗口，再用管理员终端 |
-| 平台依赖 | 推荐安装 `.[macos]`，包含 PyObjC 支持 | 不需要 `macos` extra |
-| GUI 后端 | PyQt5 + macOS 平台适配 | PyQt5 + Windows 平台适配 |
+| 主题           | macOS                                          | Windows                                                |
+| -------------- | ---------------------------------------------- | ------------------------------------------------------ |
+| Python 命令    | 通常是 `python3`                             | 通常是 `py` 或 `python`                            |
+| 虚拟环境激活   | `source .venv/bin/activate`                  | `.venv\Scripts\Activate.ps1`                         |
+| 路径格式       | `/Users/name/project`                        | `C:\Users\name\project`                              |
+| 复制粘贴快捷键 | `Command+C`、`Command+V`                   | `Ctrl+C`、`Ctrl+V`                                 |
+| 自动化权限     | 在系统设置中开启辅助功能、屏幕录制、麦克风权限 | 普通应用可直接运行；如需控制管理员窗口，再用管理员终端 |
+| 平台依赖       | 推荐安装 `.[macos]`，包含 PyObjC 支持        | 不需要 `macos` extra                                 |
+| GUI 后端       | PyQt5 + macOS 平台适配                         | PyQt5 + Windows 平台适配                               |
 
 写任务时，尽量用自然语言描述目标，而不是直接描述平台快捷键。例如说“复制选中的文本”，通常比说“按 Command+C”更稳。如果必须写快捷键，请使用当前系统对应的按键。
 
@@ -160,8 +162,19 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 - 配置 `voice_interaction_config.asr_api_key` 用于语音识别。
 - 配置 `tts_config.api_key` 用于语音播报。
 - 如果需要免手动唤醒，下载本地唤醒词模型。
-- 默认唤醒词在 `wake_word_config.phrases` 中配置。
+- 默认唤醒词是 `你好彤彤` 和 `hello Lulu`，可以在 `wake_word_config.phrases` 中修改。
+- 说 `退出程序` 可以通过语音退出同窗；英文支持 `exit program`、`quit app` 等 `close/exit/quit program/app` 类指令。
+- 空闲时说 `退下吧` 可以收起悬浮面板，但不会退出程序。
 - WebRTC 回声消除依赖 `aec-audio-processing`，当前项目 marker 只会在 Python 3.11+ 上安装它。
+
+默认交互快捷键：
+
+| 操作 | macOS | Windows |
+| --- | --- | --- |
+| 呼出 / 聚焦同窗 | `Command+Shift+Space` | `Ctrl+Alt+Space` |
+| 收起悬浮面板 | `Command+Shift+Y` | `Ctrl+Alt+Enter` |
+| 提交输入框任务 | `Enter` | `Enter` |
+| 停止当前任务 | 停止按钮，或运行中按呼出快捷键 | 停止按钮，或运行中按呼出快捷键 |
 
 ## 本地唤醒词模型
 
@@ -173,8 +186,8 @@ models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20
 
 下载命令：
 
-| macOS | Windows |
-| --- | --- |
+| macOS                                           | Windows                                    |
+| ----------------------------------------------- | ------------------------------------------ |
 | `python3 scripts/download_wake_word_model.py` | `py scripts\download_wake_word_model.py` |
 
 常用参数：
@@ -275,19 +288,19 @@ CoView/
 
 测试：
 
-| macOS | Windows |
-| --- | --- |
-| `python3 -m pytest tests/` | `py -m pytest tests/` |
+| macOS                                         | Windows                                  |
+| --------------------------------------------- | ---------------------------------------- |
+| `python3 -m pytest tests/`                  | `py -m pytest tests/`                  |
 | `python3 -m pytest tests/test_runner.py -q` | `py -m pytest tests/test_runner.py -q` |
-| `python3 scripts/run_gui_acceptance.py` | `py scripts\run_gui_acceptance.py` |
+| `python3 scripts/run_gui_acceptance.py`     | `py scripts\run_gui_acceptance.py`     |
 
 格式化与检查：
 
-| macOS | Windows |
-| --- | --- |
-| `black src/baodou_ai tests` | `black src\baodou_ai tests` |
+| macOS                          | Windows                        |
+| ------------------------------ | ------------------------------ |
+| `black src/baodou_ai tests`  | `black src\baodou_ai tests`  |
 | `flake8 src/baodou_ai tests` | `flake8 src\baodou_ai tests` |
-| `mypy src/baodou_ai` | `mypy src\baodou_ai` |
+| `mypy src/baodou_ai`         | `mypy src\baodou_ai`         |
 
 ## Agent 协议
 
