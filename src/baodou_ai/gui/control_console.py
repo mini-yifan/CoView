@@ -13,8 +13,19 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PyQt5.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QRectF, Qt, QTimer, pyqtProperty
-from PyQt5.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath
+from PyQt5.QtCore import (
+    QEasingCurve,
+    QPoint,
+    QPropertyAnimation,
+    QRectF,
+    Qt,
+    QThread,
+    QTimer,
+    QUrl,
+    pyqtProperty,
+    pyqtSignal,
+)
+from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QPainter, QPainterPath
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -41,11 +52,16 @@ from baodou_ai import __version__
 from baodou_ai.code_agent.manager import JobManager
 from baodou_ai.core.config import Config
 from baodou_ai.core.screenshot import CAPTURE_EXCLUDE_PROPERTY
+from baodou_ai.core.update_checker import (
+    RELEASES_URL,
+    UpdateCheckError,
+    UpdateCheckResult,
+    check_for_updates,
+)
 from baodou_ai.gui.control_console_jobs import CodeAgentJobsPanel
 from baodou_ai.gui.i18n import set_locale, t, translate
 from baodou_ai.gui.runtime_log import RuntimeLogBuffer
 from baodou_ai.platform import get_platform_adapter
-
 
 # 黑白灰极简风格（与悬浮球显示框统一）
 PALETTE = {
@@ -256,15 +272,13 @@ class SectionCard(QFrame):
     def __init__(self, title: str, description: str = "", parent=None) -> None:
         super().__init__(parent)
         self._row_count = 0
-        self.setStyleSheet(
-            f"""
+        self.setStyleSheet(f"""
             QFrame {{
                 background-color: {PALETTE['card']};
                 border: 1px solid {PALETTE['divider']};
                 border-radius: 18px;
             }}
-            """
-        )
+            """)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
@@ -276,8 +290,7 @@ class SectionCard(QFrame):
         header_layout.setContentsMargins(20, 18, 20, 12)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet(
-            f"""
+        title_label.setStyleSheet(f"""
             QLabel {{
                 color: {PALETTE['text_primary']};
                 font-size: 15px;
@@ -285,15 +298,13 @@ class SectionCard(QFrame):
                 background: transparent;
                 border: none;
             }}
-            """
-        )
+            """)
         header_layout.addWidget(title_label)
 
         if description:
             desc_label = QLabel(description)
             desc_label.setWordWrap(True)
-            desc_label.setStyleSheet(
-                f"""
+            desc_label.setStyleSheet(f"""
                 QLabel {{
                     color: {PALETTE['text_secondary']};
                     font-size: 12px;
@@ -301,8 +312,7 @@ class SectionCard(QFrame):
                     background: transparent;
                     border: none;
                 }}
-                """
-            )
+                """)
             header_layout.addWidget(desc_label)
 
         layout.addWidget(header)
@@ -342,8 +352,7 @@ class SectionCard(QFrame):
         text_layout.setSpacing(4)
 
         title_label = QLabel(title_text)
-        title_label.setStyleSheet(
-            f"""
+        title_label.setStyleSheet(f"""
             QLabel {{
                 color: {PALETTE['text_primary']};
                 font-size: 14px;
@@ -351,15 +360,13 @@ class SectionCard(QFrame):
                 background: transparent;
                 border: none;
             }}
-            """
-        )
+            """)
         text_layout.addWidget(title_label)
 
         if description:
             desc_label = QLabel(description)
             desc_label.setWordWrap(True)
-            desc_label.setStyleSheet(
-                f"""
+            desc_label.setStyleSheet(f"""
                 QLabel {{
                     color: {PALETTE['text_secondary']};
                     font-size: 12px;
@@ -367,8 +374,7 @@ class SectionCard(QFrame):
                     background: transparent;
                     border: none;
                 }}
-                """
-            )
+                """)
             text_layout.addWidget(desc_label)
 
         row_layout.addLayout(text_layout, 1)
@@ -387,6 +393,17 @@ class SectionCard(QFrame):
 
         self.content_layout.addWidget(row)
         self._row_count += 1
+
+
+class UpdateCheckWorker(QThread):
+    result_ready = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def run(self) -> None:
+        try:
+            self.result_ready.emit(check_for_updates(__version__))
+        except UpdateCheckError as exc:
+            self.failed.emit(str(exc))
 
 
 class ControlConsoleWindow(QMainWindow):
@@ -435,6 +452,10 @@ class ControlConsoleWindow(QMainWindow):
         self._sidebar: Optional[QListWidget] = None
         self._footer_sidebar: Optional[QListWidget] = None
         self._current_page_id = "general"
+        self._update_check_worker: Optional[UpdateCheckWorker] = None
+        self._update_status_label: Optional[QLabel] = None
+        self._update_check_button: Optional[QPushButton] = None
+        self._latest_release_url = RELEASES_URL
 
         set_locale(str(self._config.get("locale_config.locale", "zh_CN") or "zh_CN"))
 
@@ -498,14 +519,20 @@ class ControlConsoleWindow(QMainWindow):
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self._sidebar = self._build_sidebar_list(MAIN_SIDEBAR_ITEMS, top_padding=20, bottom_padding=12)
-        self._footer_sidebar = self._build_sidebar_list(FOOTER_SIDEBAR_ITEMS, top_padding=8, bottom_padding=0)
+        self._sidebar = self._build_sidebar_list(
+            MAIN_SIDEBAR_ITEMS, top_padding=20, bottom_padding=12
+        )
+        self._footer_sidebar = self._build_sidebar_list(
+            FOOTER_SIDEBAR_ITEMS, top_padding=8, bottom_padding=0
+        )
         layout.addWidget(self._sidebar, 0, Qt.AlignTop)
         layout.addStretch(1)
 
         divider = QFrame()
         divider.setFixedHeight(1)
-        divider.setStyleSheet(f"background-color: {PALETTE['divider']}; border: none; margin: 0 16px 8px 16px;")
+        divider.setStyleSheet(
+            f"background-color: {PALETTE['divider']}; border: none; margin: 0 16px 8px 16px;"
+        )
         layout.addWidget(divider)
         layout.addWidget(self._footer_sidebar, 0, Qt.AlignBottom)
         return container
@@ -521,8 +548,7 @@ class ControlConsoleWindow(QMainWindow):
         sidebar.setFocusPolicy(Qt.NoFocus)
         sidebar.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sidebar.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        sidebar.setStyleSheet(
-            f"""
+        sidebar.setStyleSheet(f"""
             QListWidget {{
                 background-color: {PALETTE['bg']};
                 border: none;
@@ -548,8 +574,7 @@ class ControlConsoleWindow(QMainWindow):
                 background-color: {PALETTE['sidebar_selected_bg']};
                 color: {PALETTE['sidebar_selected_text']};
             }}
-            """
-        )
+            """)
 
         for key, label_key in items:
             item = QListWidgetItem(t(label_key))
@@ -613,8 +638,7 @@ class ControlConsoleWindow(QMainWindow):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setStyleSheet(
-            f"""
+        scroll.setStyleSheet(f"""
             QScrollArea {{
                 border: none;
                 background: transparent;
@@ -632,8 +656,7 @@ class ControlConsoleWindow(QMainWindow):
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0px;
             }}
-            """
-        )
+            """)
         scroll.setWidget(widget)
         return scroll
 
@@ -656,17 +679,25 @@ class ControlConsoleWindow(QMainWindow):
         card_api = SectionCard(t("section_api"), t("general_api_desc"))
         card_api.add_row(
             t("label_api_key"),
-            self._register_widget("api_config.api_key", self._styled_line_edit(t("api_key_placeholder"), password=True)),
+            self._register_widget(
+                "api_config.api_key",
+                self._styled_line_edit(t("api_key_placeholder"), password=True),
+            ),
             t("general_api_key_desc"),
         )
         card_api.add_row(
             t("label_base_url"),
-            self._register_widget("api_config.base_url", self._styled_line_edit("https://dashscope.aliyuncs.com/compatible-mode/v1")),
+            self._register_widget(
+                "api_config.base_url",
+                self._styled_line_edit("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+            ),
             t("general_base_url_desc"),
         )
         card_api.add_row(
             t("label_model_name"),
-            self._register_widget("api_config.model_name", self._styled_line_edit("qwen3.6-35b-a3b")),
+            self._register_widget(
+                "api_config.model_name", self._styled_line_edit("qwen3.6-35b-a3b")
+            ),
             t("general_model_desc"),
         )
         page.layout().addWidget(card_api)
@@ -693,17 +724,26 @@ class ControlConsoleWindow(QMainWindow):
         card_memory = SectionCard(t("section_memory"), t("general_memory_desc"))
         card_memory.add_row(
             t("label_max_text_memory"),
-            self._register_widget("memory_config.max_text_memory", self._styled_spin_box(1, 200, t("suffix_text_memory"))),
+            self._register_widget(
+                "memory_config.max_text_memory",
+                self._styled_spin_box(1, 200, t("suffix_text_memory")),
+            ),
             t("general_text_memory_desc"),
         )
         card_memory.add_row(
             t("label_max_image_memory"),
-            self._register_widget("memory_config.max_image_memory", self._styled_spin_box(1, 20, t("suffix_image_memory"))),
+            self._register_widget(
+                "memory_config.max_image_memory",
+                self._styled_spin_box(1, 20, t("suffix_image_memory")),
+            ),
             t("general_image_memory_desc"),
         )
         card_memory.add_row(
             t("label_history_count"),
-            self._register_widget("memory_config.history_count", self._styled_spin_box(1, 10, t("suffix_history_count"))),
+            self._register_widget(
+                "memory_config.history_count",
+                self._styled_spin_box(1, 10, t("suffix_history_count")),
+            ),
             t("general_history_count_desc"),
         )
         page.layout().addWidget(card_memory)
@@ -711,7 +751,10 @@ class ControlConsoleWindow(QMainWindow):
         card_exec = SectionCard(t("section_execution_behavior"), t("general_execution_desc"))
         card_exec.add_row(
             t("label_max_iterations"),
-            self._register_widget("execution_config.default_max_iterations", self._styled_spin_box(1, 500, t("suffix_iterations"))),
+            self._register_widget(
+                "execution_config.default_max_iterations",
+                self._styled_spin_box(1, 500, t("suffix_iterations")),
+            ),
             t("general_max_iterations_desc"),
         )
         page.layout().addWidget(card_exec)
@@ -763,17 +806,25 @@ class ControlConsoleWindow(QMainWindow):
         card_tts = SectionCard(t("section_tts"), t("voice_tts_desc"))
         card_tts.add_row(
             t("label_tts_enabled"),
-            self._register_widget("tts_config.enabled", self._styled_check_box(t("label_tts_enabled_cb"))),
+            self._register_widget(
+                "tts_config.enabled", self._styled_check_box(t("label_tts_enabled_cb"))
+            ),
             t("voice_tts_enabled_desc"),
         )
         card_tts.add_row(
             t("label_tts_api_key"),
-            self._register_widget("tts_config.api_key", self._styled_line_edit(t("api_key_placeholder"), password=True)),
+            self._register_widget(
+                "tts_config.api_key",
+                self._styled_line_edit(t("api_key_placeholder"), password=True),
+            ),
             t("voice_tts_api_key_desc"),
         )
         card_tts.add_row(
             t("label_tts_base_url"),
-            self._register_widget("tts_config.base_url", self._styled_line_edit("wss://dashscope.aliyuncs.com/api-ws/v1/inference")),
+            self._register_widget(
+                "tts_config.base_url",
+                self._styled_line_edit("wss://dashscope.aliyuncs.com/api-ws/v1/inference"),
+            ),
             t("voice_tts_base_url_desc"),
         )
         card_tts.add_row(
@@ -788,7 +839,9 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_tts.add_row(
             t("label_tts_speech_rate"),
-            self._register_widget("tts_config.speech_rate", self._styled_double_spin_box(0.5, 3.0, suffix="x")),
+            self._register_widget(
+                "tts_config.speech_rate", self._styled_double_spin_box(0.5, 3.0, suffix="x")
+            ),
             t("voice_tts_speech_rate_desc"),
         )
         card_tts.add_row(
@@ -798,7 +851,9 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_tts.add_row(
             t("label_tts_pitch_rate"),
-            self._register_widget("tts_config.pitch_rate", self._styled_double_spin_box(0.5, 2.0, suffix="x")),
+            self._register_widget(
+                "tts_config.pitch_rate", self._styled_double_spin_box(0.5, 2.0, suffix="x")
+            ),
             t("voice_tts_pitch_rate_desc"),
         )
         page.layout().addWidget(card_tts)
@@ -806,33 +861,49 @@ class ControlConsoleWindow(QMainWindow):
         card_input = SectionCard(t("section_voice_input"), t("voice_input_desc"))
         card_input.add_row(
             t("voice_input_enabled_label"),
-            self._register_widget("voice_interaction_config.enabled", self._styled_check_box(t("voice_input_enabled_cb"))),
+            self._register_widget(
+                "voice_interaction_config.enabled",
+                self._styled_check_box(t("voice_input_enabled_cb")),
+            ),
             t("voice_input_enabled_desc"),
         )
 
         card_input.add_row(
             t("voice_input_asr_provider_label"),
-            self._register_widget("voice_interaction_config.asr_provider", self._styled_combo_box(["qwen"])),
+            self._register_widget(
+                "voice_interaction_config.asr_provider", self._styled_combo_box(["qwen"])
+            ),
             t("voice_input_asr_provider_desc"),
         )
         card_input.add_row(
             t("voice_input_asr_api_key_label"),
-            self._register_widget("voice_interaction_config.asr_api_key", self._styled_line_edit(t("api_key_placeholder"), password=True)),
+            self._register_widget(
+                "voice_interaction_config.asr_api_key",
+                self._styled_line_edit(t("api_key_placeholder"), password=True),
+            ),
             t("voice_input_asr_api_key_desc"),
         )
         card_input.add_row(
             t("voice_input_asr_url_label"),
-            self._register_widget("voice_interaction_config.asr_url", self._styled_line_edit("wss://dashscope.aliyuncs.com/api-ws/v1/realtime")),
+            self._register_widget(
+                "voice_interaction_config.asr_url",
+                self._styled_line_edit("wss://dashscope.aliyuncs.com/api-ws/v1/realtime"),
+            ),
             t("voice_input_asr_url_desc"),
         )
         card_input.add_row(
             t("voice_input_asr_model_label"),
-            self._register_widget("voice_interaction_config.asr_model", self._styled_line_edit("qwen3-asr-flash-realtime")),
+            self._register_widget(
+                "voice_interaction_config.asr_model",
+                self._styled_line_edit("qwen3-asr-flash-realtime"),
+            ),
             t("voice_input_asr_model_desc"),
         )
         card_input.add_row(
             t("voice_input_asr_language_label"),
-            self._register_widget("voice_interaction_config.asr_language", self._styled_line_edit("zh")),
+            self._register_widget(
+                "voice_interaction_config.asr_language", self._styled_line_edit("zh")
+            ),
             t("voice_input_asr_language_desc"),
         )
         card_input.add_row(
@@ -845,17 +916,26 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_input.add_row(
             t("voice_input_ignore_tts_echo_label"),
-            self._register_widget("voice_interaction_config.ignore_tts_echo", self._styled_check_box(t("voice_input_ignore_tts_echo_cb"))),
+            self._register_widget(
+                "voice_interaction_config.ignore_tts_echo",
+                self._styled_check_box(t("voice_input_ignore_tts_echo_cb")),
+            ),
             t("voice_input_ignore_tts_echo_desc"),
         )
         card_input.add_row(
             t("voice_input_idle_auto_unpin_label"),
-            self._register_widget("voice_interaction_config.idle_auto_unpin_seconds", self._styled_spin_box(0, 3600, t("suffix_seconds"))),
+            self._register_widget(
+                "voice_interaction_config.idle_auto_unpin_seconds",
+                self._styled_spin_box(0, 3600, t("suffix_seconds")),
+            ),
             t("voice_input_idle_auto_unpin_desc"),
         )
         card_input.add_row(
             t("voice_input_recording_indicator_label"),
-            self._register_widget("voice_interaction_config.show_voice_recording_indicator", self._styled_check_box(t("voice_input_recording_indicator_cb"))),
+            self._register_widget(
+                "voice_interaction_config.show_voice_recording_indicator",
+                self._styled_check_box(t("voice_input_recording_indicator_cb")),
+            ),
             t("voice_input_recording_indicator_desc"),
         )
         page.layout().addWidget(card_input)
@@ -863,12 +943,16 @@ class ControlConsoleWindow(QMainWindow):
         card_wake_word = SectionCard(t("section_wake_word"), t("wake_word_desc"))
         card_wake_word.add_row(
             t("wake_word_enabled_label"),
-            self._register_widget("wake_word_config.enabled", self._styled_check_box(t("wake_word_enabled_cb"))),
+            self._register_widget(
+                "wake_word_config.enabled", self._styled_check_box(t("wake_word_enabled_cb"))
+            ),
             t("wake_word_enabled_desc"),
         )
         card_wake_word.add_row(
             t("wake_word_provider_label"),
-            self._register_widget("wake_word_config.provider", self._styled_combo_box(["sherpa_onnx"])),
+            self._register_widget(
+                "wake_word_config.provider", self._styled_combo_box(["sherpa_onnx"])
+            ),
             t("wake_word_provider_desc"),
         )
         card_wake_word.add_row(
@@ -883,12 +967,16 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_wake_word.add_row(
             t("wake_word_threshold_label"),
-            self._register_widget("wake_word_config.threshold", self._styled_double_spin_box(0.0, 1.0, decimals=2)),
+            self._register_widget(
+                "wake_word_config.threshold", self._styled_double_spin_box(0.0, 1.0, decimals=2)
+            ),
             t("wake_word_threshold_desc"),
         )
         card_wake_word.add_row(
             t("wake_word_cooldown_label"),
-            self._register_widget("wake_word_config.cooldown_ms", self._styled_spin_box(0, 60000, t("suffix_ms"))),
+            self._register_widget(
+                "wake_word_config.cooldown_ms", self._styled_spin_box(0, 60000, t("suffix_ms"))
+            ),
             t("wake_word_cooldown_desc"),
         )
         card_wake_word.add_row(
@@ -901,7 +989,10 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_wake_word.add_row(
             t("wake_word_indicator_label"),
-            self._register_widget("wake_word_config.show_indicator", self._styled_check_box(t("wake_word_indicator_cb"))),
+            self._register_widget(
+                "wake_word_config.show_indicator",
+                self._styled_check_box(t("wake_word_indicator_cb")),
+            ),
             t("wake_word_indicator_desc"),
         )
         page.layout().addWidget(card_wake_word)
@@ -1049,12 +1140,18 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_exec.add_row(
             t("label_report_interval"),
-            self._register_widget("execution_config.process_report_interval_steps", self._styled_spin_box(1, 20, t("suffix_steps"))),
+            self._register_widget(
+                "execution_config.process_report_interval_steps",
+                self._styled_spin_box(1, 20, t("suffix_steps")),
+            ),
             t("advanced_report_interval_desc"),
         )
         card_exec.add_row(
             t("label_post_tool_delay"),
-            self._register_widget("execution_config.post_tool_capture_delay_ms", self._styled_spin_box(0, 5000, t("suffix_ms"))),
+            self._register_widget(
+                "execution_config.post_tool_capture_delay_ms",
+                self._styled_spin_box(0, 5000, t("suffix_ms")),
+            ),
             t("advanced_post_tool_delay_desc"),
         )
         page.layout().addWidget(card_exec)
@@ -1062,12 +1159,17 @@ class ControlConsoleWindow(QMainWindow):
         card_mouse = SectionCard(t("section_mouse"), t("advanced_mouse_desc"))
         card_mouse.add_row(
             t("label_move_duration"),
-            self._register_widget("mouse_config.move_duration", self._styled_double_spin_box(0.0, 5.0, suffix=t("suffix_seconds"))),
+            self._register_widget(
+                "mouse_config.move_duration",
+                self._styled_double_spin_box(0.0, 5.0, suffix=t("suffix_seconds")),
+            ),
             t("advanced_move_duration_desc"),
         )
         card_mouse.add_row(
             t("label_failsafe"),
-            self._register_widget("mouse_config.failsafe", self._styled_check_box(t("label_failsafe_cb"))),
+            self._register_widget(
+                "mouse_config.failsafe", self._styled_check_box(t("label_failsafe_cb"))
+            ),
             t("advanced_failsafe_desc"),
         )
         page.layout().addWidget(card_mouse)
@@ -1075,7 +1177,9 @@ class ControlConsoleWindow(QMainWindow):
         card_vad = SectionCard(t("section_vad"), t("vad_desc"))
         card_vad.add_row(
             t("vad_sample_rate_label"),
-            self._register_widget("voice_interaction_config.sample_rate", self._styled_spin_box(8000, 48000, " Hz")),
+            self._register_widget(
+                "voice_interaction_config.sample_rate", self._styled_spin_box(8000, 48000, " Hz")
+            ),
             t("vad_sample_rate_desc"),
         )
         card_vad.add_row(
@@ -1088,27 +1192,41 @@ class ControlConsoleWindow(QMainWindow):
         )
         card_vad.add_row(
             t("vad_energy_threshold_label"),
-            self._register_widget("voice_interaction_config.energy_threshold", self._styled_spin_box(0, 20000)),
+            self._register_widget(
+                "voice_interaction_config.energy_threshold", self._styled_spin_box(0, 20000)
+            ),
             t("vad_energy_threshold_desc"),
         )
         card_vad.add_row(
             t("vad_min_speech_label"),
-            self._register_widget("voice_interaction_config.vad_min_speech_ms", self._styled_spin_box(50, 3000, t("suffix_ms"))),
+            self._register_widget(
+                "voice_interaction_config.vad_min_speech_ms",
+                self._styled_spin_box(50, 3000, t("suffix_ms")),
+            ),
             t("vad_min_speech_desc"),
         )
         card_vad.add_row(
             t("vad_end_silence_label"),
-            self._register_widget("voice_interaction_config.vad_end_silence_ms", self._styled_spin_box(100, 5000, t("suffix_ms"))),
+            self._register_widget(
+                "voice_interaction_config.vad_end_silence_ms",
+                self._styled_spin_box(100, 5000, t("suffix_ms")),
+            ),
             t("vad_end_silence_desc"),
         )
         card_vad.add_row(
             t("vad_pre_roll_label"),
-            self._register_widget("voice_interaction_config.vad_pre_roll_ms", self._styled_spin_box(0, 3000, t("suffix_ms"))),
+            self._register_widget(
+                "voice_interaction_config.vad_pre_roll_ms",
+                self._styled_spin_box(0, 3000, t("suffix_ms")),
+            ),
             t("vad_pre_roll_desc"),
         )
         card_vad.add_row(
             t("vad_max_utterance_label"),
-            self._register_widget("voice_interaction_config.vad_max_utterance_ms", self._styled_spin_box(1000, 120000, t("suffix_ms"))),
+            self._register_widget(
+                "voice_interaction_config.vad_max_utterance_ms",
+                self._styled_spin_box(1000, 120000, t("suffix_ms")),
+            ),
             t("vad_max_utterance_desc"),
         )
         page.layout().addWidget(card_vad)
@@ -1116,27 +1234,42 @@ class ControlConsoleWindow(QMainWindow):
         card_aec = SectionCard(t("section_aec"), t("aec_desc"))
         card_aec.add_row(
             t("aec_enabled_label"),
-            self._register_widget("voice_interaction_config.echo_cancellation_enabled", self._styled_check_box(t("aec_enabled_cb"))),
+            self._register_widget(
+                "voice_interaction_config.echo_cancellation_enabled",
+                self._styled_check_box(t("aec_enabled_cb")),
+            ),
             t("aec_enabled_desc"),
         )
         card_aec.add_row(
             t("aec_frame_label"),
-            self._register_widget("voice_interaction_config.echo_cancellation_frame_ms", self._styled_spin_box(10, 30, t("suffix_ms"))),
+            self._register_widget(
+                "voice_interaction_config.echo_cancellation_frame_ms",
+                self._styled_spin_box(10, 30, t("suffix_ms")),
+            ),
             t("aec_frame_desc"),
         )
         card_aec.add_row(
             t("aec_delay_label"),
-            self._register_widget("voice_interaction_config.echo_cancellation_stream_delay_ms", self._styled_spin_box(0, 500, t("suffix_ms"))),
+            self._register_widget(
+                "voice_interaction_config.echo_cancellation_stream_delay_ms",
+                self._styled_spin_box(0, 500, t("suffix_ms")),
+            ),
             t("aec_delay_desc"),
         )
         card_aec.add_row(
             t("aec_ns_label"),
-            self._register_widget("voice_interaction_config.echo_cancellation_ns", self._styled_check_box(t("aec_ns_cb"))),
+            self._register_widget(
+                "voice_interaction_config.echo_cancellation_ns",
+                self._styled_check_box(t("aec_ns_cb")),
+            ),
             t("aec_ns_desc"),
         )
         card_aec.add_row(
             t("aec_agc_label"),
-            self._register_widget("voice_interaction_config.echo_cancellation_agc", self._styled_check_box(t("aec_agc_cb"))),
+            self._register_widget(
+                "voice_interaction_config.echo_cancellation_agc",
+                self._styled_check_box(t("aec_agc_cb")),
+            ),
             t("aec_agc_desc"),
         )
         page.layout().addWidget(card_aec)
@@ -1144,7 +1277,10 @@ class ControlConsoleWindow(QMainWindow):
         card_intent = SectionCard(t("section_intent"), t("intent_desc"))
         card_intent.add_row(
             t("intent_model_label"),
-            self._register_widget("voice_interaction_config.intent_model_name", self._styled_line_edit(t("intent_model_placeholder"))),
+            self._register_widget(
+                "voice_interaction_config.intent_model_name",
+                self._styled_line_edit(t("intent_model_placeholder")),
+            ),
             t("intent_model_desc"),
         )
         page.layout().addWidget(card_intent)
@@ -1170,9 +1306,78 @@ class ControlConsoleWindow(QMainWindow):
             self._read_only_value_label(__version__),
             t("about_version_desc"),
         )
+        self._update_status_label = self._read_only_value_label(t("about_update_idle"))
+        self._update_check_button = QPushButton(t("about_update_check_button"))
+        self._update_check_button.setCursor(Qt.PointingHandCursor)
+        self._update_check_button.setStyleSheet(self._small_button_style())
+        self._update_check_button.clicked.connect(self._start_update_check)
+        update_controls = QWidget()
+        update_layout = QHBoxLayout(update_controls)
+        update_layout.setContentsMargins(0, 0, 0, 0)
+        update_layout.setSpacing(8)
+        update_layout.addWidget(self._update_status_label, 1)
+        update_layout.addWidget(self._update_check_button)
+        card.add_row(
+            t("about_update_label"),
+            update_controls,
+            t("about_update_desc"),
+            control_width=360,
+        )
         page.layout().addWidget(card)
         page.layout().addStretch()
         return self._wrap_scroll(page)
+
+    def _start_update_check(self) -> None:
+        if self._update_check_worker is not None and self._update_check_worker.isRunning():
+            return
+        if self._update_status_label is not None:
+            self._update_status_label.setText(t("about_update_checking"))
+        if self._update_check_button is not None:
+            self._update_check_button.setEnabled(False)
+
+        worker = UpdateCheckWorker(self)
+        worker.result_ready.connect(self._on_update_check_finished)
+        worker.failed.connect(self._on_update_check_failed)
+        worker.result_ready.connect(worker.deleteLater)
+        worker.failed.connect(worker.deleteLater)
+        self._update_check_worker = worker
+        worker.start()
+
+    def _on_update_check_finished(self, result: UpdateCheckResult) -> None:
+        self._latest_release_url = result.release_url
+        if self._update_status_label is not None:
+            if result.update_available:
+                self._update_status_label.setText(
+                    t("about_update_available").format(version=result.latest_version)
+                )
+            else:
+                self._update_status_label.setText(t("about_update_current"))
+        if self._update_check_button is not None:
+            self._update_check_button.setEnabled(True)
+            self._update_check_button.setText(
+                t("about_update_open_button")
+                if result.update_available
+                else t("about_update_check_button")
+            )
+            try:
+                self._update_check_button.clicked.disconnect()
+            except TypeError:
+                pass
+            if result.update_available:
+                self._update_check_button.clicked.connect(self._open_latest_release)
+            else:
+                self._update_check_button.clicked.connect(self._start_update_check)
+        self._update_check_worker = None
+
+    def _on_update_check_failed(self, message: str) -> None:
+        if self._update_status_label is not None:
+            self._update_status_label.setText(t("about_update_failed").format(error=message))
+        if self._update_check_button is not None:
+            self._update_check_button.setEnabled(True)
+        self._update_check_worker = None
+
+    def _open_latest_release(self) -> None:
+        QDesktopServices.openUrl(QUrl(self._latest_release_url or RELEASES_URL))
 
     def _build_language_page(self) -> QWidget:
         page = self._page_widget()
@@ -1204,15 +1409,13 @@ class ControlConsoleWindow(QMainWindow):
 
         # 状态栏
         status_card = QFrame()
-        status_card.setStyleSheet(
-            f"""
+        status_card.setStyleSheet(f"""
             QFrame {{
                 background-color: {PALETTE['card']};
                 border: 1px solid {PALETTE['divider']};
                 border-radius: 16px;
             }}
-            """
-        )
+            """)
         status_layout = QHBoxLayout(status_card)
         status_layout.setContentsMargins(20, 12, 20, 12)
         status_layout.setSpacing(14)
@@ -1237,30 +1440,26 @@ class ControlConsoleWindow(QMainWindow):
 
         # 日志
         log_card = QFrame()
-        log_card.setStyleSheet(
-            f"""
+        log_card.setStyleSheet(f"""
             QFrame {{
                 background-color: {PALETTE['card']};
                 border: 1px solid {PALETTE['divider']};
                 border-radius: 16px;
             }}
-            """
-        )
+            """)
         log_layout = QVBoxLayout(log_card)
         log_layout.setContentsMargins(20, 14, 20, 14)
         log_layout.setSpacing(8)
 
         header = QHBoxLayout()
         title = QLabel(t("log_title"))
-        title.setStyleSheet(
-            f"""
+        title.setStyleSheet(f"""
             QLabel {{
                 color: {PALETTE['text_primary']};
                 font-size: 13px;
                 font-weight: bold;
             }}
-            """
-        )
+            """)
         header.addWidget(title)
         header.addStretch()
 
@@ -1279,8 +1478,7 @@ class ControlConsoleWindow(QMainWindow):
 
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
-        self.log_text.setStyleSheet(
-            f"""
+        self.log_text.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {PALETTE['log_bg']};
                 color: {PALETTE['log_text']};
@@ -1291,8 +1489,7 @@ class ControlConsoleWindow(QMainWindow):
                 font-size: 12px;
                 line-height: 1.6;
             }}
-            """
-        )
+            """)
         log_layout.addWidget(self.log_text)
         layout.addWidget(log_card, 1)
         return page
@@ -1306,8 +1503,7 @@ class ControlConsoleWindow(QMainWindow):
         widget.setPlaceholderText(placeholder)
         if password:
             widget.setEchoMode(QLineEdit.Password)
-        widget.setStyleSheet(
-            f"""
+        widget.setStyleSheet(f"""
             QLineEdit {{
                 background-color: {PALETTE['input_bg']};
                 border: 1px solid {PALETTE['input_border']};
@@ -1321,8 +1517,7 @@ class ControlConsoleWindow(QMainWindow):
                 border-color: {PALETTE['input_focus']};
                 background-color: {PALETTE['input_bg']};
             }}
-            """
-        )
+            """)
         return widget
 
     def _styled_combo_box(self, values: List[str]) -> QComboBox:
@@ -1330,8 +1525,7 @@ class ControlConsoleWindow(QMainWindow):
         widget.addItems(values)
         # 使用 Qt 原生 QListView 替代平台原生菜单，确保 stylesheet 完全生效
         widget.setView(QListView())
-        widget.setStyleSheet(
-            f"""
+        widget.setStyleSheet(f"""
             QComboBox {{
                 background-color: {PALETTE['input_bg']};
                 border: 1.5px solid {PALETTE['input_border']};
@@ -1387,8 +1581,7 @@ class ControlConsoleWindow(QMainWindow):
                 background-color: {PALETTE['sidebar_selected_bg']};
                 color: {PALETTE['sidebar_selected_text']};
             }}
-            """
-        )
+            """)
         return widget
 
     def _combo_option_label(self, key: str, value: str) -> str:
@@ -1409,8 +1602,7 @@ class ControlConsoleWindow(QMainWindow):
         widget.setRange(minimum, maximum)
         widget.setSuffix(suffix)
         widget.setButtonSymbols(QSpinBox.NoButtons)
-        widget.setStyleSheet(
-            f"""
+        widget.setStyleSheet(f"""
             QSpinBox {{
                 background-color: {PALETTE['input_bg']};
                 border: 1px solid {PALETTE['input_border']};
@@ -1424,8 +1616,7 @@ class ControlConsoleWindow(QMainWindow):
                 border-color: {PALETTE['input_focus']};
                 background-color: {PALETTE['input_bg']};
             }}
-            """
-        )
+            """)
         return widget
 
     def _styled_double_spin_box(
@@ -1440,8 +1631,7 @@ class ControlConsoleWindow(QMainWindow):
         widget.setDecimals(decimals)
         widget.setSuffix(suffix)
         widget.setButtonSymbols(QDoubleSpinBox.NoButtons)
-        widget.setStyleSheet(
-            f"""
+        widget.setStyleSheet(f"""
             QDoubleSpinBox {{
                 background-color: {PALETTE['input_bg']};
                 border: 1px solid {PALETTE['input_border']};
@@ -1455,8 +1645,7 @@ class ControlConsoleWindow(QMainWindow):
                 border-color: {PALETTE['input_focus']};
                 background-color: {PALETTE['input_bg']};
             }}
-            """
-        )
+            """)
         return widget
 
     def _styled_check_box(self, text: str) -> QCheckBox:
@@ -1465,8 +1654,7 @@ class ControlConsoleWindow(QMainWindow):
     def _read_only_value_label(self, text: str) -> QLabel:
         label = QLabel(text)
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        label.setStyleSheet(
-            f"""
+        label.setStyleSheet(f"""
             QLabel {{
                 color: {PALETTE['text_primary']};
                 font-size: 13px;
@@ -1477,8 +1665,7 @@ class ControlConsoleWindow(QMainWindow):
                 border: 1px solid {PALETTE['input_border']};
                 border-radius: 11px;
             }}
-            """
-        )
+            """)
         return label
 
     def _build_language_button(self, locale_value: str, label: str) -> QPushButton:
@@ -1486,7 +1673,9 @@ class ControlConsoleWindow(QMainWindow):
         button.setCursor(Qt.PointingHandCursor)
         button.setProperty("active", locale_value == self._config.get("locale_config.locale"))
         button.setStyleSheet(self._language_button_style(bool(button.property("active"))))
-        button.clicked.connect(lambda _checked=False, locale_value=locale_value: self._on_locale_changed(locale_value))
+        button.clicked.connect(
+            lambda _checked=False, locale_value=locale_value: self._on_locale_changed(locale_value)
+        )
         return button
 
     def _language_button_style(self, active: bool) -> str:
@@ -1513,7 +1702,9 @@ class ControlConsoleWindow(QMainWindow):
         self._config_widgets[key] = widget
         if isinstance(widget, _NoWheelComboBox):
             raw_values = widget.raw_items()
-            widget.set_items(raw_values, [self._combo_option_label(key, value) for value in raw_values])
+            widget.set_items(
+                raw_values, [self._combo_option_label(key, value) for value in raw_values]
+            )
         return widget
 
     def _register_wake_word_phrase_widget(self, language: str, widget: QLineEdit) -> QLineEdit:
@@ -1569,8 +1760,7 @@ class ControlConsoleWindow(QMainWindow):
             """
 
     def _small_button_style(self) -> str:
-        return (
-            f"""
+        return f"""
             QPushButton {{
                 background-color: {PALETTE['input_bg']};
                 color: {PALETTE['text_primary']};
@@ -1586,11 +1776,9 @@ class ControlConsoleWindow(QMainWindow):
                 border-color: {PALETTE['text_primary']};
             }}
             """
-        )
 
     def _metric_label_style(self) -> str:
-        return (
-            f"""
+        return f"""
             QLabel {{
                 color: {PALETTE['text_secondary']};
                 font-size: 11px;
@@ -1600,11 +1788,9 @@ class ControlConsoleWindow(QMainWindow):
                 border: 1px solid {PALETTE['divider']};
             }}
             """
-        )
 
     def _status_label_style(self, color: str) -> str:
-        return (
-            f"""
+        return f"""
             QLabel {{
                 color: {color};
                 background-color: rgba(0,0,0,0.08);
@@ -1614,7 +1800,6 @@ class ControlConsoleWindow(QMainWindow):
                 font-size: 12px;
             }}
             """
-        )
 
     # ------------------------------------------------------------------
     # 配置加载 / 保存 / 信号
@@ -1623,17 +1808,27 @@ class ControlConsoleWindow(QMainWindow):
     def _connect_config_signals(self) -> None:
         for key, widget in self._config_widgets.items():
             if isinstance(widget, QLineEdit):
-                widget.editingFinished.connect(lambda key=key, widget=widget: self._set_text_config(key, widget.text()))
+                widget.editingFinished.connect(
+                    lambda key=key, widget=widget: self._set_text_config(key, widget.text())
+                )
             elif isinstance(widget, QCheckBox):
-                widget.toggled.connect(lambda value, key=key: self._set_config_value(key, bool(value)))
+                widget.toggled.connect(
+                    lambda value, key=key: self._set_config_value(key, bool(value))
+                )
             elif isinstance(widget, QComboBox):
                 widget.currentIndexChanged.connect(
-                    lambda _idx, key=key, widget=widget: self._set_config_value(key, widget.currentText())
+                    lambda _idx, key=key, widget=widget: self._set_config_value(
+                        key, widget.currentText()
+                    )
                 )
             elif isinstance(widget, QSpinBox):
-                widget.valueChanged.connect(lambda value, key=key: self._set_config_value(key, int(value)))
+                widget.valueChanged.connect(
+                    lambda value, key=key: self._set_config_value(key, int(value))
+                )
             elif isinstance(widget, QDoubleSpinBox):
-                widget.valueChanged.connect(lambda value, key=key: self._set_config_value(key, float(value)))
+                widget.valueChanged.connect(
+                    lambda value, key=key: self._set_config_value(key, float(value))
+                )
 
     def _on_locale_changed(self, locale_value: str) -> None:
         locale_value = str(locale_value or "zh_CN")
@@ -1805,7 +2000,9 @@ class ControlConsoleWindow(QMainWindow):
 
     def _save_log(self) -> None:
         default_name = f"coview-agent-log-{time.strftime('%Y%m%d-%H%M%S')}.log"
-        target_path, _ = QFileDialog.getSaveFileName(self, t("log_save_title"), default_name, t("dialog_log_filter"))
+        target_path, _ = QFileDialog.getSaveFileName(
+            self, t("log_save_title"), default_name, t("dialog_log_filter")
+        )
         if not target_path:
             return
         saved_path = self._log_buffer.save_to_file(target_path)
@@ -1844,7 +2041,9 @@ class ControlConsoleWindow(QMainWindow):
                 color = PALETTE["log_success"]
             else:
                 color = PALETTE["log_text"]
-            cursor.insertHtml(f'<span style="color:{color}">{text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(chr(10), "<br>")}</span>')
+            cursor.insertHtml(
+                f'<span style="color:{color}">{text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(chr(10), "<br>")}</span>'
+            )
         self.log_text.setTextCursor(cursor)
         self.log_text.ensureCursorVisible()
 
@@ -1871,8 +2070,12 @@ class ControlConsoleWindow(QMainWindow):
         self._current_status_key = status_key
         self._current_status_text = status_text
         self._current_iteration = iteration if iteration is not None else self._current_iteration
-        self._current_max_iterations = max_iterations if max_iterations is not None else self._current_max_iterations
-        self._current_token_total = token_total if token_total is not None else self._current_token_total
+        self._current_max_iterations = (
+            max_iterations if max_iterations is not None else self._current_max_iterations
+        )
+        self._current_token_total = (
+            token_total if token_total is not None else self._current_token_total
+        )
         self.status_dot.setStyleSheet(f"color: {color}; font-size: 16px;")
         self.status_label.setText(status_text)
         self.status_label.setStyleSheet(self._status_label_style(color))
@@ -1880,7 +2083,9 @@ class ControlConsoleWindow(QMainWindow):
         if iteration is not None:
             total_iterations = int(max_iterations or 0)
             current_iteration = max(0, int(iteration))
-            self.iter_label.setText(t("iteration_label", current=current_iteration, total=total_iterations))
+            self.iter_label.setText(
+                t("iteration_label", current=current_iteration, total=total_iterations)
+            )
         if token_total is not None:
             self.token_label.setText(t("token_label", count=int(token_total)))
 
