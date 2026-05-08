@@ -36,16 +36,16 @@ That means CoView is not limited to chat. It can operate browsers, editors, docu
 
 ## Highlights
 
-| Capability | What CoView Does |
-| --- | --- |
-| 👀 See | Observes your desktop through screenshots and visual reasoning. |
-| 🖥️ Multi-Screen Control | Understands and operates across multiple displays. |
-| 🖱️ Act | Clicks, drags, scrolls, uses hotkeys, inputs text, and reads pages or documents. |
-| 🤝 Collaborate | Works from a floating assistant UI with task input, stop control, logs, settings, and suggestions. |
-| 🎙️ Listen & Respond | Supports ASR, TTS, local wake-word detection, and voice indicators. |
-| 🧑‍💻 Background Code Agent | Runs coding and automation jobs asynchronously through multiple providers. |
-| 🌐 Chinese & English | Provides bilingual product flows and documentation. |
-| 🔌 Model Flexible | Uses OpenAI-compatible endpoints through `base_url`, `api_key`, and `model_name`. |
+| Capability                   | What CoView Does                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 👀 See                       | Observes your desktop through screenshots and visual reasoning.                                                    |
+| 🖥️ Multi-Screen Control    | Understand and manipulate windows and content across multiple monitors, and quickly perform GUI operations.        |
+| 🖱️ Act                     | Clicks, drags, scrolls, uses hotkeys, inputs text, and reads pages or documents.                                   |
+| 🤝 Collaborate               | Works from a floating assistant UI with task input, stop control, logs, settings, and suggestions.                 |
+| 🎙️ Listen & Respond        | Supports ASR, TTS, local wake-word detection, and voice indicators.                                                |
+| 🧑‍💻 Background Code Agent | Run codes and automated tasks asynchronously in the background, supporting Codex, Claude Code, Kimi Code and more. |
+| 🌐 Chinese & English         | Provides bilingual product flows and documentation.                                                                |
+| 🔌 Model Flexible            | Uses OpenAI-compatible endpoints through `base_url`, `api_key`, and `model_name`.                            |
 
 ## How CoView Works
 
@@ -71,16 +71,16 @@ Requirements:
 
 ### 1. Clone the Repository
 
-| macOS / Linux | Windows PowerShell |
-| --- | --- |
+| macOS / Linux                                          | Windows PowerShell                                     |
+| ------------------------------------------------------ | ------------------------------------------------------ |
 | `git clone https://github.com/mini-yifan/CoView.git` | `git clone https://github.com/mini-yifan/CoView.git` |
-| `cd CoView` | `cd CoView` |
+| `cd CoView`                                          | `cd CoView`                                          |
 
 ### 2. Create and Activate a Virtual Environment
 
-| macOS / Linux | Windows PowerShell |
-| --- | --- |
-| `python3 -m venv .venv` | `py -3 -m venv .venv` |
+| macOS / Linux                 | Windows PowerShell             |
+| ----------------------------- | ------------------------------ |
+| `python3 -m venv .venv`     | `py -3 -m venv .venv`        |
 | `source .venv/bin/activate` | `.venv\Scripts\Activate.ps1` |
 
 If PowerShell blocks activation, run this once in the same PowerShell window:
@@ -91,9 +91,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ### 3. Install CoView
 
-| macOS | Windows |
-| --- | --- |
-| `python3 -m pip install -U pip` | `py -m pip install -U pip` |
+| macOS                                              | Windows                                 |
+| -------------------------------------------------- | --------------------------------------- |
+| `python3 -m pip install -U pip`                  | `py -m pip install -U pip`            |
 | `python3 -m pip install -e ".[macos,voice,tts]"` | `py -m pip install -e ".[voice,tts]"` |
 
 ### 4. Configure Your Model
@@ -114,12 +114,12 @@ Do not commit real API keys to a public repository.
 
 ### 5. Run the App
 
-| Goal | macOS | Windows |
-| --- | --- | --- |
-| Start the floating GUI | `coview` | `coview` |
-| Run one CLI task | `coview-cli "Open the browser and search today's weather"` | `coview-cli "Open Notepad and type Hello"` |
-| Limit task steps | `coview-cli "Summarize the current page" --max-iterations 20` | `coview-cli "Open Calculator" --max-iterations 20` |
-| Stop a CLI task | `Ctrl+C` | `Ctrl+C` |
+| Goal                   | macOS                                                           | Windows                                              |
+| ---------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| Start the floating GUI | `coview`                                                      | `coview`                                           |
+| Run one CLI task       | `coview-cli "Open the browser and search today's weather"`    | `coview-cli "Open Notepad and type Hello"`         |
+| Limit task steps       | `coview-cli "Summarize the current page" --max-iterations 20` | `coview-cli "Open Calculator" --max-iterations 20` |
+| Stop a CLI task        | `Ctrl+C`                                                      | `Ctrl+C`                                           |
 
 ## First Interaction in 60 Seconds
 
@@ -141,17 +141,17 @@ Create a background code-agent task to inspect this repository's test structure.
 
 ## Documentation
 
-| Guide | Link |
-| --- | --- |
-| Full documentation index | [docs/en/README.md](docs/en/README.md) |
-| Product overview | [docs/en/product-overview.md](docs/en/product-overview.md) |
-| Setup and configuration | [docs/en/setup-configuration.md](docs/en/setup-configuration.md) |
-| Voice interaction | [docs/en/voice-interaction.md](docs/en/voice-interaction.md) |
-| CLI and Python API | [docs/en/usage-cli-api.md](docs/en/usage-cli-api.md) |
-| Architecture | [docs/en/architecture.md](docs/en/architecture.md) |
-| Agent protocol | [docs/en/agent-protocol.md](docs/en/agent-protocol.md) |
-| Development | [docs/en/development.md](docs/en/development.md) |
-| Safety and contributing | [docs/en/safety-contributing.md](docs/en/safety-contributing.md) |
+| Guide                    | Link                                                          |
+| ------------------------ | ------------------------------------------------------------- |
+| Full documentation index | [docs/en/README.md](docs/en/README.md)                           |
+| Product overview         | [docs/en/product-overview.md](docs/en/product-overview.md)       |
+| Setup and configuration  | [docs/en/setup-configuration.md](docs/en/setup-configuration.md) |
+| Voice interaction        | [docs/en/voice-interaction.md](docs/en/voice-interaction.md)     |
+| CLI and Python API       | [docs/en/usage-cli-api.md](docs/en/usage-cli-api.md)             |
+| Architecture             | [docs/en/architecture.md](docs/en/architecture.md)               |
+| Agent protocol           | [docs/en/agent-protocol.md](docs/en/agent-protocol.md)           |
+| Development              | [docs/en/development.md](docs/en/development.md)                 |
+| Safety and contributing  | [docs/en/safety-contributing.md](docs/en/safety-contributing.md) |
 
 ## License
 
