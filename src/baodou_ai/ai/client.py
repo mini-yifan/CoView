@@ -209,11 +209,12 @@ class AIClient:
         """返回最近一次模型请求前置校验或请求失败结构。"""
         return dict(self._last_request_error_envelope or {}) if self._last_request_error_envelope else None
 
-    def _set_missing_api_key_error(self) -> None:
+    def _set_missing_api_key_error(self, respond_language_override: str = "") -> None:
+        user_message = self._config.get_model_api_key_missing_message(respond_language_override)
         envelope = from_message(
             source=SOURCE_RUNTIME,
             kind=KIND_VALIDATION_FAILED,
-            user_message="模型 API Key 未配置，请先在设置中填写接口密钥。",
+            user_message=user_message,
             dev_detail="缺少 api_config.api_key 配置",
             code=CODE_MODEL_API_KEY_MISSING,
             retryable=False,
@@ -755,7 +756,7 @@ class AIClient:
         self._last_request_error_envelope = None
         api_key = self._config.api_config.get("api_key", "")
         if not api_key:
-            self._set_missing_api_key_error()
+            self._set_missing_api_key_error(respond_language_override)
             print("提示：配置文件中未设置 API Key，跳过模型分析")
             return None, {
                 "encode_ms": 0.0,

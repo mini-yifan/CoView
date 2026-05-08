@@ -93,6 +93,28 @@ class TestConfig:
         config.set("test_key", "test_value")
         assert config.get("test_key") == "test_value"
 
+    def test_model_api_key_missing_message_follows_locale_and_override(self):
+        config = Config()
+        config.set("locale_config.locale", "zh_CN")
+        config.set("locale_config.respond_language", "")
+
+        assert config.get_model_api_key_missing_message() == "模型 API Key 未配置，请先在设置中填写接口密钥。"
+
+        config.set("locale_config.locale", "en_US")
+        assert (
+            config.get_model_api_key_missing_message()
+            == "Model API key is not configured. Please enter an API key in Settings first."
+        )
+
+        assert (
+            config.get_model_api_key_missing_message("Chinese (Simplified)")
+            == "模型 API Key 未配置，请先在设置中填写接口密钥。"
+        )
+        assert (
+            config.get_model_api_key_missing_message("English")
+            == "Model API key is not configured. Please enter an API key in Settings first."
+        )
+
     def test_create_isolated_returns_distinct_instances(self):
         shared = Config()
         isolated_one = Config.create_isolated()

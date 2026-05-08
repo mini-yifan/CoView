@@ -667,6 +667,21 @@ class Config:
             "ko_KR": "Korean",
         }
         return lang_map.get(locale, "English")
+
+    def get_model_api_key_missing_message(self, respond_language_override: str = "") -> str:
+        """返回与当前响应语言一致的主模型 API Key 缺失提示。"""
+        override = str(respond_language_override or "").strip()
+        language = override or self.get_respond_language()
+        if override:
+            use_english = "english" in language.lower()
+        else:
+            use_english = (
+                "english" in language.lower()
+                or str(self.locale_config.get("locale", "")).strip() == "en_US"
+            )
+        if use_english:
+            return "Model API key is not configured. Please enter an API key in Settings first."
+        return "模型 API Key 未配置，请先在设置中填写接口密钥。"
     
     @property
     def api_key(self) -> str:

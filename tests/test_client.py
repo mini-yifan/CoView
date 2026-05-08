@@ -596,6 +596,45 @@ def test_get_client_respects_tls_verify_config(monkeypatch):
     assert second_client.closed is False
 
 
+def test_get_next_action_from_capture_returns_english_missing_api_key_message():
+    config = Config()
+    config.set("api_config.api_key", "")
+    config.set("locale_config.locale", "en_US")
+    client = AIClient(config)
+
+    parsed, metrics = client.get_next_action_from_capture(
+        captures=[],
+        user_content="Open Safari",
+    )
+
+    assert parsed is None
+    assert metrics["model_latency_ms"] == 0.0
+    envelope = client.get_last_request_error_envelope()
+    assert envelope["code"] == "MODEL_API_KEY_MISSING"
+    assert envelope["user_message"] == (
+        "Model API key is not configured. Please enter an API key in Settings first."
+    )
+
+
+def test_get_next_action_from_capture_uses_respond_language_override_for_missing_api_key():
+    config = Config()
+    config.set("api_config.api_key", "")
+    config.set("locale_config.locale", "zh_CN")
+    client = AIClient(config)
+
+    parsed, _metrics = client.get_next_action_from_capture(
+        captures=[],
+        user_content="Open Safari",
+        respond_language_override="English",
+    )
+
+    assert parsed is None
+    envelope = client.get_last_request_error_envelope()
+    assert envelope["user_message"] == (
+        "Model API key is not configured. Please enter an API key in Settings first."
+    )
+
+
 def test_get_next_action_from_capture_builds_runtime_prompt_context(monkeypatch):
     config = Config()
     config.set("api_config.api_key", "test-key")
