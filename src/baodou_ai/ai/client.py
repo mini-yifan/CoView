@@ -18,6 +18,12 @@ from pydantic import BaseModel
 
 from baodou_ai.agent.tool_registry import render_tool_prompt
 from baodou_ai.core.config import Config
+from baodou_ai.core.error_envelope import (
+    CODE_MODEL_API_KEY_MISSING,
+    KIND_VALIDATION_FAILED,
+    SOURCE_RUNTIME,
+    from_message,
+)
 from baodou_ai.core.runtime_artifact_store import RuntimeArtifactStore
 from baodou_ai.ai.prompt_builder import PromptBuilder
 from baodou_ai.ai.parser import ResponseParser
@@ -60,6 +66,7 @@ class AIClient:
                 self._prompt_builder = PromptBuilder()
             self._last_parse_error = ""
             self._last_parse_error_envelope = None
+            self._last_request_error_envelope = None
             return
         
         self._initialized = True
@@ -76,6 +83,7 @@ class AIClient:
         self._stream_usage_supported: Optional[bool] = None
         self._last_parse_error = ""
         self._last_parse_error_envelope: Optional[Dict[str, Any]] = None
+        self._last_request_error_envelope: Optional[Dict[str, Any]] = None
         self._runtime_artifact_store = RuntimeArtifactStore()
         self._prompt_builder = PromptBuilder()
     
@@ -183,6 +191,7 @@ class AIClient:
         self._memory.clear()
         self._last_parse_error = ""
         self._last_parse_error_envelope = None
+        self._last_request_error_envelope = None
 
     def set_runtime_artifact_store(self, store: RuntimeArtifactStore) -> None:
         """设置运行时产物存储入口（由 runner 注入）。"""
@@ -195,6 +204,21 @@ class AIClient:
     def get_last_parse_error_envelope(self) -> Optional[Dict[str, Any]]:
         """返回最近一次模型输出解析失败结构。"""
         return dict(self._last_parse_error_envelope or {}) if self._last_parse_error_envelope else None
+
+    def get_last_request_error_envelope(self) -> Optional[Dict[str, Any]]:
+        """返回最近一次模型请求前置校验或请求失败结构。"""
+        return dict(self._last_request_error_envelope or {}) if self._last_request_error_envelope else None
+
+    def _set_missing_api_key_error(self) -> None:
+        envelope = from_message(
+            source=SOURCE_RUNTIME,
+            kind=KIND_VALIDATION_FAILED,
+            user_message="模型 API Key 未配置，请先在设置中填写接口密钥。",
+            dev_detail="缺少 api_config.api_key 配置",
+            code=CODE_MODEL_API_KEY_MISSING,
+            retryable=False,
+        )
+        self._last_request_error_envelope = envelope.to_dict()
     
     def add_feedback(self, feedback: str) -> None:
         """
@@ -582,6 +606,7 @@ class AIClient:
             image_paths = [image_paths]
         self._last_parse_error = ""
         self._last_parse_error_envelope = None
+        self._last_request_error_envelope = None
         
         for image_path in image_paths:
             if not os.path.exists(image_path):
@@ -590,6 +615,7 @@ class AIClient:
         
         api_key = self._config.api_config.get("api_key", "")
         if not api_key:
+            self._set_missing_api_key_error()
             print("提示：配置文件中未设置API Key，跳过模型分析")
             return None
         
@@ -726,8 +752,10 @@ class AIClient:
         """基于内存中的截图 bundle 获取下一步 agent 响应，并返回性能指标"""
         self._last_parse_error = ""
         self._last_parse_error_envelope = None
+        self._last_request_error_envelope = None
         api_key = self._config.api_config.get("api_key", "")
         if not api_key:
+            self._set_missing_api_key_error()
             print("提示：配置文件中未设置 API Key，跳过模型分析")
             return None, {
                 "encode_ms": 0.0,

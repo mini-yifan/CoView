@@ -28,6 +28,7 @@ from baodou_ai.core.automation import (
 )
 from baodou_ai.core.config import Config
 from baodou_ai.core.context_window import ContextWindowManager
+from baodou_ai.core.error_envelope import CODE_MODEL_API_KEY_MISSING
 from baodou_ai.core.observation import ObservationService
 from baodou_ai.core.process_report_policy import ProcessReportPolicy
 from baodou_ai.core.runtime_artifact_store import RuntimeArtifactStore
@@ -669,6 +670,21 @@ class ControlLoopRunner:
                 if not ai_result:
                     parse_error = ""
                     parse_error_envelope: Dict[str, Any] = {}
+                    request_error_envelope: Dict[str, Any] = {}
+                    get_last_request_error_envelope = getattr(self._ai_client, "get_last_request_error_envelope", None)
+                    if callable(get_last_request_error_envelope):
+                        try:
+                            request_error_envelope = dict(get_last_request_error_envelope() or {})
+                        except Exception:
+                            request_error_envelope = {}
+                    if request_error_envelope:
+                        print(f"[ERROR_ENVELOPE] {request_error_envelope}")
+                        user_message = str(request_error_envelope.get("user_message") or "").strip()
+                        error_code = str(request_error_envelope.get("code") or "").strip()
+                        retryable = bool(request_error_envelope.get("retryable"))
+                        if error_code == CODE_MODEL_API_KEY_MISSING or (user_message and not retryable):
+                            print(f"错误：{user_message or '模型请求失败'}")
+                            return user_message or "模型请求失败"
                     get_last_parse_error = getattr(self._ai_client, "get_last_parse_error", None)
                     if callable(get_last_parse_error):
                         try:

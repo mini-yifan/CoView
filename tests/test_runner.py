@@ -296,21 +296,34 @@ class FakeAutomation:
 
 
 class FakeAIClient:
-    def __init__(self, responses, stream_chunks=None, metrics_per_call=None, parse_errors_per_call=None):
+    def __init__(
+        self,
+        responses,
+        stream_chunks=None,
+        metrics_per_call=None,
+        parse_errors_per_call=None,
+        request_errors_per_call=None,
+    ):
         self.responses = [_coerce_test_response(response) for response in responses]
         self.stream_chunks = list(stream_chunks or [])
         self.metrics_per_call = list(metrics_per_call or [])
         self.parse_errors_per_call = list(parse_errors_per_call or [])
+        self.request_errors_per_call = list(request_errors_per_call or [])
         self.index = 0
         self.calls = []
         self._last_parse_error = ""
+        self._last_request_error_envelope = {}
 
     def clear_memory(self):
         self._last_parse_error = ""
+        self._last_request_error_envelope = {}
         return None
 
     def get_last_parse_error(self):
         return self._last_parse_error
+
+    def get_last_request_error_envelope(self):
+        return dict(self._last_request_error_envelope or {})
 
     def get_next_action_from_capture(
         self,
@@ -333,6 +346,7 @@ class FakeAIClient:
         background_jobs_prompt="",
         pending_reports_prompt="",
         on_stream_chunk=None,
+        respond_language_override="",
     ):
         current_index = min(self.index, len(self.responses) - 1)
         self.index += 1
@@ -340,6 +354,10 @@ class FakeAIClient:
             self._last_parse_error = self.parse_errors_per_call[current_index] or ""
         else:
             self._last_parse_error = ""
+        if current_index < len(self.request_errors_per_call):
+            self._last_request_error_envelope = self.request_errors_per_call[current_index] or {}
+        else:
+            self._last_request_error_envelope = {}
         self.calls.append({
             "action_feedback": action_feedback,
             "memory_content": memory_content,
@@ -477,6 +495,31 @@ def test_runner_feeds_parse_validation_error_back_to_next_round():
     assert result == "我会按每批最多 20 个来继续处理。"
     assert "单次最多删除 20 个条目" in runner._ai_client.calls[1]["action_feedback"]
     assert "split them into multiple manage_files calls with at most 20 items per call" in runner._ai_client.calls[1]["action_feedback"]
+
+
+def test_runner_stops_when_model_api_key_is_missing():
+    config = Config()
+    runner = ControlLoopRunner(config)
+    runner._clear_memory_files = lambda: None
+    runner._read_memory_content = lambda: ""
+    runner._screenshot = FakeScreenshot([[make_bundle()], [make_bundle(value=1)], [make_bundle(value=2)]])
+    runner._automation = FakeAutomation()
+    runner._ai_client = FakeAIClient(
+        [None],
+        request_errors_per_call=[{
+            "source": "runtime",
+            "kind": "validation_failed",
+            "user_message": "模型 API Key 未配置，请先在设置中填写接口密钥。",
+            "dev_detail": "缺少 api_config.api_key 配置",
+            "retryable": False,
+            "code": "MODEL_API_KEY_MISSING",
+        }],
+    )
+
+    result = runner.run("task", max_iterations=3)
+
+    assert result == "模型 API Key 未配置，请先在设置中填写接口密钥。"
+    assert len(runner._ai_client.calls) == 1
 
 
 def test_runner_prints_iteration_and_task_token_usage_summary(capsys):

@@ -16,6 +16,7 @@ from baodou_ai.core.runner import ControlLoopRunner
 from baodou_ai.platform import cancel_current_mouse_motion
 
 FRIENDLY_API_ERROR_MESSAGE = "当前api链接出现异常，可能是网络不稳定"
+MISSING_MODEL_API_KEY_MESSAGE = "模型 API Key 未配置，请先在设置中填写接口密钥。"
 
 
 class AIWorker(QThread):
@@ -57,6 +58,12 @@ class AIWorker(QThread):
     def run(self) -> None:
         """运行AI控制逻辑"""
         try:
+            api_key = str(self._config.api_config.get("api_key", "") or "").strip()
+            if not api_key:
+                print("提示：配置文件中未设置 API Key，任务已停止")
+                self.error.emit(MISSING_MODEL_API_KEY_MESSAGE)
+                return
+
             user_content = ControlLoopRunner.build_user_content(self.user_content)
             print(f"=============用户输入内容为:{user_content}")
 

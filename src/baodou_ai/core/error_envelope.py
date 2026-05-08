@@ -30,6 +30,7 @@ CODE_VOICE_INIT_FAILED = "VOICE_INIT_FAILED"
 CODE_VOICE_RUNTIME_FAILED = "VOICE_RUNTIME_FAILED"
 CODE_TTS_INIT_FAILED = "TTS_INIT_FAILED"
 CODE_TTS_PLAYBACK_FAILED = "TTS_PLAYBACK_FAILED"
+CODE_MODEL_API_KEY_MISSING = "MODEL_API_KEY_MISSING"
 
 
 @dataclass(frozen=True)
@@ -130,4 +131,3 @@ def from_message(
         exception_type=str(exception_type or ""),
         extra=dict(extra or {}),
     )
-
