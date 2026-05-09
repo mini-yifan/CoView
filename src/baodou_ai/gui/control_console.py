@@ -634,6 +634,9 @@ class ControlConsoleWindow(QMainWindow):
         if 0 <= index < len(page_ids):
             self._select_page(page_ids[index])
 
+    def switch_to_page_id(self, page_id: str) -> None:
+        self._select_page(str(page_id or "general"))
+
     def _wrap_scroll(self, widget: QWidget) -> QScrollArea:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)

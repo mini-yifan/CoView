@@ -101,6 +101,12 @@ class _WakeWordEventBridge(QObject):
 class FloatingController:
     """悬浮球应用主控制器。"""
 
+    _LOCAL_INPUT_COMMAND_PAGES = {
+        "/setting": "general",
+        "/settings": "general",
+        "/设置": "general",
+    }
+
     _WINDOWS_WM_HOTKEY = 0x0312
     _WINDOWS_MOD_ALT = 0x0001
     _WINDOWS_MOD_CONTROL = 0x0002
@@ -606,6 +612,14 @@ class FloatingController:
         window.raise_()
         window.activateWindow()
 
+    def open_console_page(self, page_id: str = "general") -> None:
+        self._mark_voice_user_interaction()
+        window = self._ensure_console_window()
+        window.switch_to_page_id(page_id)
+        window.show()
+        window.raise_()
+        window.activateWindow()
+
     def show_ball_context_menu(self, global_pos: QPoint) -> None:
         self._mark_voice_user_interaction()
         self._menu_controller.show_ball_context_menu(global_pos)
@@ -1008,6 +1022,8 @@ class FloatingController:
         hide = getattr(companion, "hide_suggestions", None)
         if callable(hide):
             hide()
+        if self._handle_local_input_command(text):
+            return
         self._start_task(text, source="keyboard")
 
     def _handle_suggestion_submit(self, text: str) -> None:
@@ -1030,6 +1046,16 @@ class FloatingController:
 
     def _start_task(self, text: str, source: str = "keyboard", focus_panel: bool = True) -> None:
         self._task_session_controller.start_task(text, source=source, focus_panel=focus_panel)
+
+    def _handle_local_input_command(self, text: str) -> bool:
+        normalized_text = str(text or "").strip()
+        if not normalized_text:
+            return False
+        page_id = self._LOCAL_INPUT_COMMAND_PAGES.get(normalized_text.lower())
+        if page_id is None:
+            return False
+        self.open_console_page(page_id)
+        return True
 
     def request_voice_stop(self) -> None:
         self._task_session_controller.request_voice_stop()

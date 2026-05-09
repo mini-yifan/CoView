@@ -2609,6 +2609,52 @@ def test_floating_controller_creates_job_window_for_background_job():
     assert fake_window.activate_calls == 1
 
 
+def test_floating_controller_opens_settings_for_local_slash_commands():
+    class _FakeConsoleWindow:
+        def __init__(self):
+            self.page_ids = []
+            self.show_calls = 0
+            self.raise_calls = 0
+            self.activate_calls = 0
+
+        def switch_to_page_id(self, page_id):
+            self.page_ids.append(page_id)
+
+        def show(self):
+            self.show_calls += 1
+
+        def raise_(self):
+            self.raise_calls += 1
+
+        def activateWindow(self):
+            self.activate_calls += 1
+
+    for command in ("/设置", "/setting", "/Setting"):
+        controller = FloatingController.__new__(FloatingController)
+        controller._console_window = None
+        controller._task_active = lambda: False
+        controller._mark_voice_user_interaction = lambda: None
+        start_calls = []
+        hide_calls = []
+        fake_window = _FakeConsoleWindow()
+        controller._ensure_console_window = lambda window=fake_window: window
+        controller._start_task = (
+            lambda text, source="keyboard", focus_panel=True: start_calls.append(
+                (text, source, focus_panel)
+            )
+        )
+        controller._companion = SimpleNamespace(hide_suggestions=lambda: hide_calls.append(True))
+
+        controller.handle_submit(command)
+
+        assert fake_window.page_ids == ["general"]
+        assert fake_window.show_calls == 1
+        assert fake_window.raise_calls == 1
+        assert fake_window.activate_calls == 1
+        assert hide_calls == [True]
+        assert start_calls == []
+
+
 def test_floating_controller_managed_windows_excludes_background_job_windows():
     controller = FloatingController.__new__(FloatingController)
     controller.ball_window = object()
