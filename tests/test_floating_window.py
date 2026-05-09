@@ -1663,6 +1663,71 @@ def test_control_console_wake_word_phrase_widgets_save_and_restore(monkeypatch, 
     assert restored_window._wake_word_phrase_widgets["en"].text() == "Hey CoView"
 
 
+def test_control_console_fills_tts_api_key_from_model_for_aliyun(monkeypatch, tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr("baodou_ai.gui.control_console.get_platform_adapter", lambda: fake_platform)
+
+    changes = []
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    config.set("api_config.base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+    config.set("tts_config.base_url", "wss://dashscope.aliyuncs.com/api-ws/v1/inference")
+    config.set("tts_config.api_key", "")
+    window = ControlConsoleWindow(
+        config,
+        RuntimeLogBuffer(),
+        on_config_changed=lambda key, value: changes.append((key, value)),
+    )
+
+    window._set_text_config("api_config.api_key", "shared-key")
+
+    assert config.get("api_config.api_key") == "shared-key"
+    assert config.get("tts_config.api_key") == "shared-key"
+    assert window._config_widgets["tts_config.api_key"].text() == "shared-key"
+    assert changes == [
+        ("api_config.api_key", "shared-key"),
+        ("tts_config.api_key", "shared-key"),
+    ]
+
+
+def test_control_console_does_not_override_existing_tts_api_key(monkeypatch, tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr("baodou_ai.gui.control_console.get_platform_adapter", lambda: fake_platform)
+
+    changes = []
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    config.set("api_config.base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+    config.set("tts_config.base_url", "wss://dashscope.aliyuncs.com/api-ws/v1/inference")
+    config.set("tts_config.api_key", "custom-tts-key")
+    window = ControlConsoleWindow(
+        config,
+        RuntimeLogBuffer(),
+        on_config_changed=lambda key, value: changes.append((key, value)),
+    )
+
+    window._set_text_config("api_config.api_key", "shared-key")
+
+    assert config.get("api_config.api_key") == "shared-key"
+    assert config.get("tts_config.api_key") == "custom-tts-key"
+    assert window._config_widgets["tts_config.api_key"].text() == "custom-tts-key"
+    assert changes == [("api_config.api_key", "shared-key")]
+
+
 def test_control_console_shows_footer_entries_and_switches_locale(monkeypatch, tmp_path):
     app = QApplication.instance() or QApplication([])
     assert app is not None

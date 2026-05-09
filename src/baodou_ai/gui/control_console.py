@@ -410,6 +410,7 @@ class ControlConsoleWindow(QMainWindow):
     """设置与运行时控制台"""
 
     _LOG_FLUSH_INTERVAL_MS = 33
+    _ALIYUN_BASE_URL_TOKEN = "aliyuncs.com"
 
     @staticmethod
     def _use_topmost_window() -> bool:
@@ -1913,6 +1914,8 @@ class ControlConsoleWindow(QMainWindow):
         normalized = str(value or "").strip()
         if key == "api_config.api_key":
             self._config.api_key = normalized
+            self._notify_config_changed(key, normalized)
+            self._maybe_fill_tts_api_key_from_model(key)
             return
         self._set_config_value(key, normalized)
 
@@ -1929,6 +1932,41 @@ class ControlConsoleWindow(QMainWindow):
         self._config.set(key, value)
         self._config.save()
         self._notify_config_changed(key, value)
+        self._maybe_fill_tts_api_key_from_model(key)
+
+    @classmethod
+    def _is_aliyun_base_url(cls, value: Any) -> bool:
+        return cls._ALIYUN_BASE_URL_TOKEN in str(value or "").strip().lower()
+
+    def _maybe_fill_tts_api_key_from_model(self, changed_key: str) -> None:
+        if changed_key not in {
+            "api_config.api_key",
+            "api_config.base_url",
+            "tts_config.base_url",
+        }:
+            return
+
+        model_api_key = str(self._config.get("api_config.api_key", "") or "").strip()
+        model_base_url = str(self._config.get("api_config.base_url", "") or "").strip()
+        tts_base_url = str(self._config.get("tts_config.base_url", "") or "").strip()
+        tts_api_key = str(self._config.get("tts_config.api_key", "") or "").strip()
+        if not model_api_key or tts_api_key:
+            return
+        if not self._is_aliyun_base_url(model_base_url):
+            return
+        if not self._is_aliyun_base_url(tts_base_url):
+            return
+
+        self._config.set("tts_config.api_key", model_api_key)
+        self._config.save()
+
+        widget = self._config_widgets.get("tts_config.api_key")
+        if isinstance(widget, QLineEdit):
+            widget.blockSignals(True)
+            widget.setText(model_api_key)
+            widget.blockSignals(False)
+
+        self._notify_config_changed("tts_config.api_key", model_api_key)
 
     def _notify_config_changed(self, key: str, value) -> None:
         if self._on_config_changed is not None:
