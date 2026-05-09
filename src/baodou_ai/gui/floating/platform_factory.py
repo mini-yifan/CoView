@@ -8,6 +8,7 @@ from baodou_ai.gui.floating.ball import BallWindow, EdgeBarWindow
 from baodou_ai.gui.floating.panel import PanelWindow
 from baodou_ai.gui.floating.suggestion_window import SuggestionWindow
 from baodou_ai.gui.floating.toast_window import ToastWindow
+from baodou_ai.gui.floating.windows_taskbar_host import WindowsTaskbarHostWindow
 from baodou_ai.gui.floating.windows_widgets import (
     WindowsBallWindow,
     WindowsEdgeBarWindow,
@@ -45,3 +46,9 @@ def create_toast_window(controller):
     if platform.system() == "Windows":
         return WindowsToastWindow(controller)
     return ToastWindow(controller)
+
+
+def create_taskbar_host_window(controller):
+    if platform.system() == "Windows":
+        return WindowsTaskbarHostWindow(controller)
+    return None

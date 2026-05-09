@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import sys
 import time
 from typing import Any, Dict, List, Optional
@@ -32,6 +33,7 @@ from baodou_ai.gui.floating.platform_factory import (
     create_edge_bar_window,
     create_panel_window,
     create_suggestion_window,
+    create_taskbar_host_window,
     create_toast_window,
 )
 from baodou_ai.gui.floating.runtime_state_presenter import RuntimeStatePresenter
@@ -176,6 +178,7 @@ class FloatingController:
         self.edge_bar = create_edge_bar_window(self)
         self.suggestion_window = create_suggestion_window(self)
         self.toast_window = create_toast_window(self)
+        self._taskbar_host_window = create_taskbar_host_window(self)
         self._overlay = OverlayWindowCoordinator(self)
         self._snap_anim = self._overlay.snap_anim
         self._unsnap_anim = self._overlay.unsnap_anim
@@ -519,6 +522,8 @@ class FloatingController:
     def start(self) -> None:
         primary_screen = self.app.primaryScreen()
         screen_geometry = primary_screen.geometry()
+        if self._taskbar_host_window is not None:
+            self._taskbar_host_window.show_for_taskbar()
         self.ball_anchor = QPoint(
             screen_geometry.x() + screen_geometry.width() - 100,
             screen_geometry.y() + screen_geometry.height() // 2 - self.ball_size // 2,
@@ -569,9 +574,18 @@ class FloatingController:
             window = getattr(self, attr_name, None)
             if window is not None:
                 windows.append(window)
-        if self._console_window is not None:
-            windows.append(self._console_window)
         return windows
+
+    def close_console_for_task_start(self) -> None:
+        if platform.system() != "Windows":
+            return
+        window = self._console_window
+        if window is None:
+            return
+        try:
+            window.close()
+        except Exception:
+            pass
 
     def _ensure_console_window(self) -> ControlConsoleWindow:
         if self._console_window is None:
@@ -1186,6 +1200,12 @@ class FloatingController:
 
     def shutdown(self) -> None:
         cancel_current_mouse_motion()
+        taskbar_host = getattr(self, "_taskbar_host_window", None)
+        if taskbar_host is not None:
+            try:
+                taskbar_host.allow_shutdown_close()
+            except Exception:
+                pass
         self._teardown_global_hotkey()
         self.hover_timer.stop()
         self.collapse_timer.stop()
@@ -1209,6 +1229,8 @@ class FloatingController:
 
         if self._console_window is not None:
             self._console_window.close()
+        if taskbar_host is not None:
+            taskbar_host.close()
         self._background_jobs.shutdown()
         self._job_windows = self._background_jobs.job_windows
         self.panel_window.hide()

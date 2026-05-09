@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import platform
 import threading
 from typing import Any, Dict, Optional, Protocol
 
@@ -30,6 +31,9 @@ class TaskSessionHost(Protocol):
         ...
 
     def hide_companion_suggestions(self) -> None:
+        ...
+
+    def close_console_for_task_start(self) -> None:
         ...
 
     def get_default_max_iterations(self) -> int:
@@ -173,6 +177,20 @@ class FloatingTaskSessionHost:
         legacy = getattr(companion, "hide_suggestions", None)
         if callable(legacy):
             legacy()
+
+    def close_console_for_task_start(self) -> None:
+        closer = getattr(self._owner, "close_console_for_task_start", None)
+        if callable(closer):
+            closer()
+            return
+        if platform.system() != "Windows":
+            return
+        window = getattr(self._owner, "_console_window", None)
+        if window is None:
+            return
+        close = getattr(window, "close", None)
+        if callable(close):
+            close()
 
     def get_default_max_iterations(self) -> int:
         getter = getattr(self._owner, "get_default_max_iterations", None)

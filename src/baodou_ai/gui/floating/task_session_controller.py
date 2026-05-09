@@ -51,6 +51,7 @@ class TaskSessionController:
     def start_task(self, text: str, source: str = "keyboard", focus_panel: bool = True) -> None:
         self._host.stop_tts()
         self._host.hide_companion_suggestions()
+        self._host.close_console_for_task_start()
         self._prune_retained_workers()
         self._state.task_text = text
         self._state.iteration = 0
