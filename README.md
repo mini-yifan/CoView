@@ -173,6 +173,12 @@ Create a background code-agent task to inspect this repository's test structure.
 | Development              | [docs/en/development.md](docs/en/development.md)                 |
 | Safety and contributing  | [docs/en/safety-contributing.md](docs/en/safety-contributing.md) |
 
+## Open Source Acknowledgements
+
+CoView is built on top of excellent open source projects, including [PyQt5](https://pypi.org/project/PyQt5/), [OpenCV](https://opencv.org/), [NumPy](https://numpy.org/), [MSS](https://github.com/BoboTiG/python-mss), [PyAutoGUI](https://github.com/asweigart/pyautogui), [OpenAI Python SDK](https://github.com/openai/openai-python), [tiktoken](https://github.com/openai/tiktoken), [Pydantic](https://github.com/pydantic/pydantic), [Pillow](https://python-pillow.org/), [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx), [SentencePiece](https://github.com/google/sentencepiece), and [sounddevice](https://github.com/spatialaudio/python-sounddevice).
+
+Please refer to each upstream project for its license and attribution requirements.
+
 ## License
 
 CoView is released under the [MIT License](LICENSE).

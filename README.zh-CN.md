@@ -173,6 +173,12 @@ API Key 可在 [阿里云百炼](https://www.alibabacloud.com/help/zh/model-stud
 | 开发指南          | [docs/zh-CN/development.md](docs/zh-CN/development.md)                 |
 | 安全与贡献        | [docs/zh-CN/safety-contributing.md](docs/zh-CN/safety-contributing.md) |
 
+## 开源致谢
+
+同窗基于许多优秀的开源项目构建，包括 [PyQt5](https://pypi.org/project/PyQt5/)、[OpenCV](https://opencv.org/)、[NumPy](https://numpy.org/)、[MSS](https://github.com/BoboTiG/python-mss)、[PyAutoGUI](https://github.com/asweigart/pyautogui)、[OpenAI Python SDK](https://github.com/openai/openai-python)、[tiktoken](https://github.com/openai/tiktoken)、[Pydantic](https://github.com/pydantic/pydantic)、[Pillow](https://python-pillow.org/)、[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)、[SentencePiece](https://github.com/google/sentencepiece) 和 [sounddevice](https://github.com/spatialaudio/python-sounddevice)。
+
+各项目的许可证与署名要求请以其上游仓库或发布页面为准。
+
 ## License
 
 同窗基于 [MIT License](LICENSE) 开源。
