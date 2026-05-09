@@ -144,7 +144,7 @@ Default wake words are `你好小彤` and `hey Lucy`. Say `close program`, `quit
 ## First Interaction in 60 Seconds
 
 1. Start the GUI with `coview`.
-2. Open the floating assistant settings and enter your model API key, base URL, and model name.
+2. Open the floating assistant settings and enter your model API key, base URL, and model name. You can type `/setting`, `/settings`, or `/设置` in the input box to open Settings directly.
 3. Click the floating assistant input, type a task, and press Enter.
 4. Watch CoView observe the screen, choose an action, execute it, and observe again.
 5. Use the stop button if the task is wrong, too broad, or interacting with the wrong window.

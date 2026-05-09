@@ -144,7 +144,7 @@ API Key 可在 [阿里云百炼](https://www.alibabacloud.com/help/zh/model-stud
 ## 60 秒上手交互
 
 1. 运行 `coview` 启动悬浮助手。
-2. 打开设置窗口，填入模型 API Key、Base URL 和模型名称。
+2. 打开设置窗口，填入模型 API Key、Base URL 和模型名称。也可以在输入框中输入 `/设置`、`/setting` 或 `/settings`，直接打开设置窗口。
 3. 点击悬浮输入框，输入任务，按 Enter 执行。
 4. 观察同窗如何看屏幕、选择操作、执行一步、再次观察。
 5. 如果任务偏离目标、范围过大或操作了错误窗口，点击停止按钮。
