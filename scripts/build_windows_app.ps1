@@ -27,6 +27,40 @@ function Fail {
     exit 1
 }
 
+function New-ZipArchiveWithRetry {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceDir,
+        [Parameter(Mandatory = $true)][string]$DestinationPath,
+        [int]$MaxAttempts = 10,
+        [int]$DelaySeconds = 2
+    )
+
+    Add-Type -AssemblyName "System.IO.Compression.FileSystem"
+
+    for ($Attempt = 1; $Attempt -le $MaxAttempts; $Attempt++) {
+        try {
+            if (Test-Path $DestinationPath) {
+                Remove-Item $DestinationPath -Force
+            }
+
+            [System.IO.Compression.ZipFile]::CreateFromDirectory(
+                $SourceDir,
+                $DestinationPath,
+                [System.IO.Compression.CompressionLevel]::Optimal,
+                $false
+            )
+            return
+        } catch {
+            if ($Attempt -eq $MaxAttempts) {
+                throw
+            }
+
+            Write-Log "ZIP source is still busy; retrying in $DelaySeconds second(s) ($Attempt/$MaxAttempts)"
+            Start-Sleep -Seconds $DelaySeconds
+        }
+    }
+}
+
 function Require-Windows {
     if ($env:OS -ne "Windows_NT") {
         Fail "Windows packages must be built on Windows."
@@ -118,10 +152,7 @@ if (-not (Test-Path $ExePath)) {
 
 $ZipPath = Join-Path $DistDir "$AppName-$AppVersion-Windows.zip"
 Write-Log "Creating ZIP: $ZipPath"
-if (Test-Path $ZipPath) {
-    Remove-Item $ZipPath -Force
-}
-Compress-Archive -Path $AppDir -DestinationPath $ZipPath -Force
+New-ZipArchiveWithRetry -SourceDir $AppDir -DestinationPath $ZipPath
 Write-Log "Done: $ZipPath"
 
 if ($CreateInstaller -eq "1") {

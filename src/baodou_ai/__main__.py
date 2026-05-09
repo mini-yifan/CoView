@@ -5,12 +5,37 @@ CoView 同窗 - 主入口文件
 """
 
 import faulthandler
+import os
 import sys
+import tempfile
+from pathlib import Path
+from typing import TextIO
 
-faulthandler.enable()
 
-_original_stderr = sys.stderr
-_original_stdout = sys.stdout
+def _resolve_diagnostic_stream() -> TextIO:
+    """在 windowed 打包环境中为 stderr 缺失提供可写诊断流。"""
+    for candidate in (sys.stderr, sys.__stderr__):
+        if candidate is not None:
+            return candidate
+
+    log_dir = Path(tempfile.gettempdir()) / "CoView"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    return (log_dir / "startup-error.log").open("a", encoding="utf-8")
+
+
+_diagnostic_stream = _resolve_diagnostic_stream()
+_original_stderr = _diagnostic_stream
+_original_stdout = sys.stdout if sys.stdout is not None else sys.__stdout__
+
+if sys.stderr is None:
+    sys.stderr = _diagnostic_stream
+if sys.stdout is None and _original_stdout is not None:
+    sys.stdout = _original_stdout
+
+try:
+    faulthandler.enable(file=_diagnostic_stream)
+except Exception:
+    pass
 
 
 def _crash_excepthook(exc_type, exc_value, exc_tb):
