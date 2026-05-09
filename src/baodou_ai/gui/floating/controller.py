@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import sys
 import time
 from typing import Any, Dict, List, Optional
@@ -569,9 +570,18 @@ class FloatingController:
             window = getattr(self, attr_name, None)
             if window is not None:
                 windows.append(window)
-        if self._console_window is not None:
-            windows.append(self._console_window)
         return windows
+
+    def close_console_for_task_start(self) -> None:
+        if platform.system() != "Windows":
+            return
+        window = self._console_window
+        if window is None:
+            return
+        try:
+            window.close()
+        except Exception:
+            pass
 
     def _ensure_console_window(self) -> ControlConsoleWindow:
         if self._console_window is None:

@@ -2423,6 +2423,101 @@ def test_voice_new_task_during_tts_only_starts_new_voice_task(monkeypatch):
     assert any(item[0] == "show_running_state" for item in operations if isinstance(item, tuple))
 
 
+def test_task_session_host_closes_console_for_task_start_on_windows(monkeypatch):
+    close_calls = []
+    owner = SimpleNamespace(_console_window=SimpleNamespace(close=lambda: close_calls.append(True)))
+    monkeypatch.setattr("baodou_ai.gui.floating.task_session_host.platform.system", lambda: "Windows")
+
+    FloatingTaskSessionHost(owner).close_console_for_task_start()
+
+    assert close_calls == [True]
+
+
+def test_task_session_host_does_not_close_console_for_task_start_on_macos(monkeypatch):
+    close_calls = []
+    owner = SimpleNamespace(_console_window=SimpleNamespace(close=lambda: close_calls.append(True)))
+    monkeypatch.setattr("baodou_ai.gui.floating.task_session_host.platform.system", lambda: "Darwin")
+
+    FloatingTaskSessionHost(owner).close_console_for_task_start()
+
+    assert close_calls == []
+
+
+def test_start_task_closes_console_window_before_worker_start(monkeypatch):
+    operations = []
+    created_workers = []
+
+    class _FakeSignal:
+        def connect(self, callback):
+            operations.append(("connect", callback))
+
+    class _FakeWorker:
+        def __init__(
+            self,
+            text,
+            config,
+            *,
+            initial_external_frontmost_app=None,
+            history_context="",
+            on_report=None,
+            job_manager=None,
+            respond_language_override="",
+        ):
+            del config, on_report, job_manager
+            self.text = text
+            self.initial_external_frontmost_app = initial_external_frontmost_app
+            self.history_context = history_context
+            self.respond_language_override = respond_language_override
+            self.finished = _FakeSignal()
+            self.error = _FakeSignal()
+            self.stream_chunk = _FakeSignal()
+            self.enter_transparent_mode = _FakeSignal()
+            self.exit_transparent_mode = _FakeSignal()
+            self.iteration_update = _FakeSignal()
+            created_workers.append(self)
+
+        def start(self):
+            operations.append(("worker_start", self.text))
+
+        def isRunning(self):
+            return False
+
+    monkeypatch.setattr("baodou_ai.gui.floating.task_session_host.AIWorker", _FakeWorker)
+
+    owner = SimpleNamespace()
+    owner._config = Config.create_isolated()
+    owner._tts = SimpleNamespace(stop=lambda: operations.append("tts_stop"))
+    owner.hide_suggestions = lambda: operations.append("hide_suggestions")
+    owner.close_console_for_task_start = lambda: operations.append("close_console")
+    owner._show_history_if_idle = lambda: operations.append("history")
+    owner._enable_screenshot_protection = lambda: operations.append("protect")
+    owner._frontmost_tracker = SimpleNamespace(snapshot_last_external_frontmost_app=lambda: None)
+    owner._platform_adapter = SimpleNamespace(activate_app=lambda app_info: operations.append(("activate", app_info)))
+    owner._log_buffer = SimpleNamespace(append_log=lambda text, level: operations.append(("log", text, level)))
+    owner._on_report = lambda _text: None
+    owner._job_manager = None
+    owner._console_window = None
+    owner.ball_anchor = QPoint(0, 0)
+    owner.panel_window = SimpleNamespace(
+        show_running_state=lambda *args, **kwargs: operations.append(("show_running_state", args, kwargs))
+    )
+    state = UITaskSessionState(status_key="ready", status_text="就绪")
+    owner._ui_task_state = state
+    presenter = RuntimeStatePresenter(owner, state)
+    session = TaskSessionController(
+        host=FloatingTaskSessionHost(owner),
+        state=state,
+        session_history=SimpleNamespace(build_context_prompt=lambda: ""),
+        task_memory_store=SimpleNamespace(read=lambda: "", clear=lambda: None),
+        runtime_state_presenter=presenter,
+    )
+
+    session.start_task("打开浏览器")
+
+    assert created_workers
+    assert operations.index("hide_suggestions") < operations.index("close_console") < operations.index(("worker_start", "打开浏览器"))
+
+
 def test_code_agent_job_window_refreshes_logs_and_cancels_running_job(monkeypatch):
     app = QApplication.instance() or QApplication([])
     assert app is not None
@@ -2720,7 +2815,7 @@ def test_floating_controller_opens_settings_for_local_slash_commands():
         assert start_calls == []
 
 
-def test_floating_controller_managed_windows_excludes_background_job_windows():
+def test_floating_controller_managed_windows_excludes_console_and_background_job_windows():
     controller = FloatingController.__new__(FloatingController)
     controller.ball_window = object()
     controller.panel_window = object()
@@ -2734,7 +2829,6 @@ def test_floating_controller_managed_windows_excludes_background_job_windows():
         controller.ball_window,
         controller.panel_window,
         controller.edge_bar,
-        controller._console_window,
     ]
 
 
