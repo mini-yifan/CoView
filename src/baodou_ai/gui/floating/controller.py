@@ -113,22 +113,22 @@ class FloatingController:
     _WINDOWS_MOD_ALT = 0x0001
     _WINDOWS_MOD_CONTROL = 0x0002
     _WINDOWS_MOD_NOREPEAT = 0x4000
-    _WINDOWS_VK_RETURN = 0x0D
-    _WINDOWS_VK_SPACE = 0x20
+    _WINDOWS_VK_I = 0x49
+    _WINDOWS_VK_O = 0x4F
     _WINDOWS_HOTKEY_ACTIVATE_ID = 0xBA01
     _WINDOWS_HOTKEY_HIDE_ID = 0xBA02
     _WINDOWS_HOTKEYS = (
         (
             _WINDOWS_HOTKEY_ACTIVATE_ID,
             _WINDOWS_MOD_CONTROL | _WINDOWS_MOD_ALT | _WINDOWS_MOD_NOREPEAT,
-            _WINDOWS_VK_SPACE,
-            "Ctrl+Alt+Space",
+            _WINDOWS_VK_I,
+            "Ctrl+Alt+I",
         ),
         (
             _WINDOWS_HOTKEY_HIDE_ID,
             _WINDOWS_MOD_CONTROL | _WINDOWS_MOD_ALT | _WINDOWS_MOD_NOREPEAT,
-            _WINDOWS_VK_RETURN,
-            "Ctrl+Alt+Enter",
+            _WINDOWS_VK_O,
+            "Ctrl+Alt+O",
         ),
     )
 

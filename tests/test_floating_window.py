@@ -613,7 +613,7 @@ def test_floating_controller_registers_windows_global_hotkeys(monkeypatch):
             FloatingController._WINDOWS_MOD_CONTROL
             | FloatingController._WINDOWS_MOD_ALT
             | FloatingController._WINDOWS_MOD_NOREPEAT,
-            FloatingController._WINDOWS_VK_SPACE,
+            FloatingController._WINDOWS_VK_I,
         ),
         (
             123456,
@@ -621,7 +621,7 @@ def test_floating_controller_registers_windows_global_hotkeys(monkeypatch):
             FloatingController._WINDOWS_MOD_CONTROL
             | FloatingController._WINDOWS_MOD_ALT
             | FloatingController._WINDOWS_MOD_NOREPEAT,
-            FloatingController._WINDOWS_VK_RETURN,
+            FloatingController._WINDOWS_VK_O,
         ),
     ]
     assert controller._windows_registered_hotkey_ids == [
