@@ -81,6 +81,19 @@ class WindowsAdapter(PlatformAdapter):
         if os.path.exists(relative_path):
             return os.path.abspath(relative_path)
 
+        if self.is_app_bundle():
+            bundle_dirs = [
+                Path(getattr(sys, "_MEIPASS", "")),
+                Path(sys.executable).resolve().parent,
+                Path(sys.executable).resolve().parent / "_internal",
+            ]
+            for bundle_dir in bundle_dirs:
+                if not str(bundle_dir):
+                    continue
+                candidate = bundle_dir / relative_path
+                if candidate.exists():
+                    return str(candidate)
+
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         full_path = os.path.join(base_dir, relative_path)
         if os.path.exists(full_path):
@@ -164,7 +177,7 @@ class WindowsAdapter(PlatformAdapter):
 
     def is_app_bundle(self) -> bool:
         """检测是否在打包的应用程序中运行"""
-        return False
+        return bool(getattr(sys, "frozen", False))
 
     def enter_transparent_mode(self, window) -> bool:
         """

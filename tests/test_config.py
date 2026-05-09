@@ -115,6 +115,27 @@ class TestConfig:
         assert config.save() is True
         assert (tmp_path / "Library" / "Application Support" / "CoView" / "config.json").exists()
 
+    def test_packaged_windows_app_uses_appdata_config_dir(self, monkeypatch, tmp_path):
+        class FakePlatformAdapter:
+            def is_app_bundle(self):
+                return True
+
+            def get_resource_path(self, relative_path):
+                return None
+
+        appdata_dir = tmp_path / "AppData" / "Roaming"
+        monkeypatch.setattr(
+            "baodou_ai.core.config.get_platform_adapter", lambda: FakePlatformAdapter()
+        )
+        monkeypatch.setattr("baodou_ai.core.config.sys.platform", "win32")
+        monkeypatch.setenv("APPDATA", str(appdata_dir))
+
+        config = Config.create_isolated()
+        config.set("api_config.api_key", "demo-key")
+
+        assert config.save() is True
+        assert (appdata_dir / "CoView" / "config.json").exists()
+
     def test_model_api_key_missing_message_follows_locale_and_override(self):
         config = Config()
         config.set("locale_config.locale", "zh_CN")

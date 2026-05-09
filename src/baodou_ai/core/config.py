@@ -7,6 +7,7 @@
 import copy
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -246,6 +247,10 @@ class Config:
     def _get_default_config_path(self) -> Path:
         """获取默认配置文件路径"""
         if self._is_packaged_app_bundle():
+            if sys.platform == "win32":
+                appdata = os.environ.get("APPDATA", "")
+                base_dir = Path(appdata) if appdata else Path.home() / "AppData" / "Roaming"
+                return base_dir / "CoView" / "config.json"
             return Path.home() / "Library" / "Application Support" / "CoView" / "config.json"
 
         config_path = self._platform_adapter.get_resource_path("config.json")
