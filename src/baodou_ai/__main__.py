@@ -52,6 +52,7 @@ from PyQt5.QtGui import QFont
 from baodou_ai.code_agent.session_files import clear_session_root as clear_code_agent_session_root
 from baodou_ai.core.config import Config
 from baodou_ai.gui.floating.controller import FloatingController
+from baodou_ai.gui.floating.windows_taskbar_host import resolve_windows_app_icon
 from baodou_ai.gui.runtime_log import init_runtime_log_buffer
 
 
@@ -68,6 +69,12 @@ def main():
 
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+    app.setApplicationName("CoView")
+    app.setApplicationDisplayName("CoView")
+    if sys.platform.startswith("win"):
+        icon = resolve_windows_app_icon()
+        if not icon.isNull():
+            app.setWindowIcon(icon)
     app.setFont(QFont("PingFang SC", 11))
 
     config = Config()

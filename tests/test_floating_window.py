@@ -22,12 +22,14 @@ from baodou_ai.gui.floating.platform_factory import (
     create_ball_window,
     create_edge_bar_window,
     create_panel_window,
+    create_taskbar_host_window,
 )
 from baodou_ai.gui.floating.runtime_state_presenter import RuntimeStatePresenter
 from baodou_ai.gui.floating.suggestion_window import SuggestionWindow
 from baodou_ai.gui.floating.task_session_controller import TaskSessionController
 from baodou_ai.gui.floating.task_session_host import FloatingTaskSessionHost
 from baodou_ai.gui.floating.task_session_state import UITaskSessionState
+from baodou_ai.gui.floating.windows_taskbar_host import WindowsTaskbarHostWindow
 from baodou_ai.gui.frontmost_tracker import FrontmostAppTracker
 from baodou_ai.gui.i18n import set_locale
 from baodou_ai.gui.runtime_log import RuntimeLogBuffer
@@ -288,14 +290,18 @@ def test_platform_factory_uses_windows_specific_widgets(monkeypatch):
     ball = create_ball_window(controller)
     panel = create_panel_window(controller)
     edge = create_edge_bar_window(controller)
+    host = create_taskbar_host_window(controller)
 
     assert isinstance(ball, WindowsBallWindow)
     assert isinstance(panel, WindowsPanelWindow)
     assert isinstance(edge, WindowsEdgeBarWindow)
+    assert isinstance(host, WindowsTaskbarHostWindow)
 
     ball.close()
     panel.close()
     edge.close()
+    host.allow_shutdown_close()
+    host.close()
 
 
 def test_platform_factory_keeps_existing_widgets_for_macos(monkeypatch):
@@ -308,14 +314,35 @@ def test_platform_factory_keeps_existing_widgets_for_macos(monkeypatch):
     ball = create_ball_window(controller)
     panel = create_panel_window(controller)
     edge = create_edge_bar_window(controller)
+    host = create_taskbar_host_window(controller)
 
     assert type(ball) is BallWindow
     assert type(panel) is PanelWindow
     assert type(edge) is EdgeBarWindow
+    assert host is None
 
     ball.close()
     panel.close()
     edge.close()
+
+
+def test_windows_taskbar_host_window_close_triggers_controller_shutdown():
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    shutdown_calls = []
+    controller = SimpleNamespace(
+        shutdown=lambda: shutdown_calls.append(True),
+        open_console_page=lambda _page_id="general": None,
+    )
+    window = WindowsTaskbarHostWindow(controller)
+
+    try:
+        assert window.close() is False
+        assert shutdown_calls == [True]
+    finally:
+        window.allow_shutdown_close()
+        window.close()
 
 
 def test_ball_mouse_move_enters_drag_after_press_delay(monkeypatch):
