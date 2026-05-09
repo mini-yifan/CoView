@@ -475,6 +475,15 @@ class ControlLoopRunner:
             if should_stop():
                 break
 
+    def _play_final_response_cue_if_tts_enabled(self) -> bool:
+        try:
+            from baodou_ai.tts.notification_sound import play_final_response_cue
+
+            return play_final_response_cue(self._config)
+        except Exception as exc:
+            print(f"[TTS] 最终播报提示音初始化失败: {exc}")
+            return False
+
     def run(
         self,
         user_content: str,

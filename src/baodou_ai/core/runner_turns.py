@@ -392,6 +392,7 @@ class RunnerBranchExecutor:
             remember_written=remember_written,
         )
         if respond_report and context.on_report:
+            self._runner._play_final_response_cue_if_tts_enabled()
             context.on_report(respond_report)
         return BranchExecutionResult(final_response=respond_payload["report"])
 

@@ -408,6 +408,65 @@ def test_runner_returns_respond_report_without_executing_action():
     assert runner._automation.executed == []
 
 
+def test_runner_plays_final_response_cue_before_respond_report():
+    config = Config()
+    runner = ControlLoopRunner(config)
+    runner._clear_memory_files = lambda: None
+    runner._read_memory_content = lambda: ""
+    runner._screenshot = FakeScreenshot([[make_bundle()]])
+    runner._automation = FakeAutomation()
+    runner._ai_client = FakeAIClient([{
+        "thinking": "现在已经可以结束并向用户汇报结果。",
+        "status": "respond",
+        "outcome": "completed",
+        "report": "任务完成",
+    }])
+    events = []
+    runner._play_final_response_cue_if_tts_enabled = lambda: events.append("cue") or True
+
+    result = runner.run(
+        "task",
+        max_iterations=1,
+        on_report=lambda text: events.append(("report", text)) or None,
+    )
+
+    assert result == "任务完成"
+    assert events == ["cue", ("report", "任务完成")]
+
+
+def test_runner_does_not_play_final_response_cue_for_process_report():
+    config = Config()
+    config.set("execution_config.post_tool_capture_delay_ms", 0)
+    runner = ControlLoopRunner(config)
+    runner._clear_memory_files = lambda: None
+    runner._read_memory_content = lambda: ""
+    runner._screenshot = FakeScreenshot([[make_bundle()]])
+    runner._automation = FakeAutomation()
+    runner._ai_client = FakeAIClient([{
+        "status": "tool_call",
+        "thinking": "先点击",
+        "report": "我先开始执行。",
+        "tool": {
+            "name": "click",
+            "args": {
+                "screen_index": 0,
+                "position": [100, 200],
+            },
+        },
+    }])
+    events = []
+    runner._play_final_response_cue_if_tts_enabled = lambda: events.append("cue") or True
+
+    result = runner.run(
+        "task",
+        max_iterations=1,
+        on_report=lambda text: events.append(("report", text)) or None,
+    )
+
+    assert result == "先点击"
+    assert events == [("report", "我先开始执行。")]
+
+
 def test_runner_on_iteration_exposes_respond_report_and_outcome():
     config = Config()
     runner = ControlLoopRunner(config)

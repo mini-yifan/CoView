@@ -26,6 +26,7 @@ VERSION = read_version()
 
 datas = [
     (str(ROOT / "defaultgif.gif"), "."),
+    (str(ROOT / "sound"), "sound"),
     (str(ROOT / "src" / "baodou_ai" / "ai" / "prompts"), "baodou_ai/ai/prompts"),
     (str(ROOT / "app_icons"), "app_icons"),
 ]
