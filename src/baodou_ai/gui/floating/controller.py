@@ -427,18 +427,18 @@ class FloatingController:
     def _is_hotkey_event(self, event) -> bool:
         try:
             modifier_flags = event.modifierFlags()
-            cmd = modifier_flags & (1 << 20)
-            shift = modifier_flags & (1 << 17)
-            return bool(cmd) and bool(shift) and event.keyCode() == 49
+            control = modifier_flags & (1 << 18)
+            option = modifier_flags & (1 << 19)
+            return bool(control) and bool(option) and event.keyCode() == 34
         except Exception:
             return False
 
     def _is_hide_hotkey_event(self, event) -> bool:
         try:
             modifier_flags = event.modifierFlags()
-            cmd = modifier_flags & (1 << 20)
-            shift = modifier_flags & (1 << 17)
-            return bool(cmd) and bool(shift) and event.keyCode() == 16
+            control = modifier_flags & (1 << 18)
+            option = modifier_flags & (1 << 19)
+            return bool(control) and bool(option) and event.keyCode() == 31
         except Exception:
             return False
 

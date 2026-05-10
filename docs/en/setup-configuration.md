@@ -81,8 +81,8 @@ When writing tasks, use natural language when possible. For example, say `copy t
 
 | Action | macOS | Windows |
 | --- | --- | --- |
-| Show / focus CoView | `Command+Shift+Space` | `Ctrl+Alt+I` |
-| Collapse the floating panel | `Command+Shift+Y` | `Ctrl+Alt+O` |
+| Show / focus CoView | `Control+Option+I` | `Ctrl+Alt+I` |
+| Collapse the floating panel | `Control+Option+O` | `Ctrl+Alt+O` |
 | Submit the typed task | `Enter` | `Enter` |
 | Stop the current task | Stop button or show/focus shortcut while running | Stop button or show/focus shortcut while running |
 

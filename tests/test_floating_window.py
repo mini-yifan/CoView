@@ -632,6 +632,28 @@ def test_floating_controller_registers_windows_global_hotkeys(monkeypatch):
     assert fake_app.installed_filters == [controller._windows_hotkey_filter]
 
 
+def test_floating_controller_matches_macos_control_option_hotkeys():
+    class _FakeMacKeyEvent:
+        def __init__(self, modifier_flags: int, key_code: int) -> None:
+            self._modifier_flags = modifier_flags
+            self._key_code = key_code
+
+        def modifierFlags(self) -> int:
+            return self._modifier_flags
+
+        def keyCode(self) -> int:
+            return self._key_code
+
+    control_option = (1 << 18) | (1 << 19)
+    command_shift = (1 << 20) | (1 << 17)
+    controller = FloatingController.__new__(FloatingController)
+
+    assert controller._is_hotkey_event(_FakeMacKeyEvent(control_option, 34))
+    assert controller._is_hide_hotkey_event(_FakeMacKeyEvent(control_option, 31))
+    assert not controller._is_hotkey_event(_FakeMacKeyEvent(command_shift, 49))
+    assert not controller._is_hide_hotkey_event(_FakeMacKeyEvent(command_shift, 16))
+
+
 def test_floating_controller_teardown_unregisters_windows_global_hotkeys(monkeypatch):
     fake_app = _FakeNativeEventApp()
     fake_user32 = _FakeUser32Hotkey()

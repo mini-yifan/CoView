@@ -83,8 +83,8 @@ py -m pip install -e ".[voice,tts,dev]"
 
 | 操作 | macOS | Windows |
 | --- | --- | --- |
-| 呼出 / 聚焦同窗 | `Command+Shift+Space` | `Ctrl+Alt+I` |
-| 收起悬浮面板 | `Command+Shift+Y` | `Ctrl+Alt+O` |
+| 呼出 / 聚焦同窗 | `Control+Option+I` | `Ctrl+Alt+I` |
+| 收起悬浮面板 | `Control+Option+O` | `Ctrl+Alt+O` |
 | 提交输入框任务 | `Enter` | `Enter` |
 | 停止当前任务 | 停止按钮，或运行中按呼出快捷键 | 停止按钮，或运行中按呼出快捷键 |
 
