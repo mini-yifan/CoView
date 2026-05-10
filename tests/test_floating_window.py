@@ -2864,13 +2864,31 @@ def test_floating_controller_opens_settings_for_local_slash_commands():
         assert start_calls == []
 
 
-def test_floating_controller_managed_windows_excludes_console_and_background_job_windows():
+def test_floating_controller_managed_windows_includes_console_on_macos(monkeypatch):
     controller = FloatingController.__new__(FloatingController)
     controller.ball_window = object()
     controller.panel_window = object()
     controller.edge_bar = object()
     controller._console_window = object()
-    controller._job_windows = {"code-job-0001": object()}
+    monkeypatch.setattr("baodou_ai.gui.floating.controller.platform.system", lambda: "Darwin")
+
+    managed = controller._managed_windows()
+
+    assert managed == [
+        controller.ball_window,
+        controller.panel_window,
+        controller.edge_bar,
+        controller._console_window,
+    ]
+
+
+def test_floating_controller_managed_windows_excludes_console_on_windows(monkeypatch):
+    controller = FloatingController.__new__(FloatingController)
+    controller.ball_window = object()
+    controller.panel_window = object()
+    controller.edge_bar = object()
+    controller._console_window = object()
+    monkeypatch.setattr("baodou_ai.gui.floating.controller.platform.system", lambda: "Windows")
 
     managed = controller._managed_windows()
 

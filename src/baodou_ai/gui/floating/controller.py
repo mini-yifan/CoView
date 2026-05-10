@@ -574,6 +574,10 @@ class FloatingController:
             window = getattr(self, attr_name, None)
             if window is not None:
                 windows.append(window)
+        if platform.system() == "Darwin":
+            console_window = getattr(self, "_console_window", None)
+            if console_window is not None:
+                windows.append(console_window)
         return windows
 
     def close_console_for_task_start(self) -> None:
