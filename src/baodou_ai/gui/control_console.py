@@ -209,14 +209,32 @@ class ShortcutCaptureButton(QPushButton):
         self._sync_accessible_text()
 
     def start_capture(self) -> None:
+        if self._capturing:
+            return
         self._capturing = True
         self.setText(t("shortcut_recording"))
-        self.setFocus(Qt.OtherFocusReason)
+        if not self.hasFocus():
+            self.setFocus(Qt.OtherFocusReason)
         self._sync_accessible_text()
 
+    def cancel_capture(self) -> None:
+        if not self._capturing:
+            return
+        self._capturing = False
+        self.set_shortcut_keys(self._keys)
+
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        self.start_capture()
+
+    def focusOutEvent(self, event) -> None:
+        self.cancel_capture()
+        super().focusOutEvent(event)
+
     def keyPressEvent(self, event) -> None:
-        if not self._capturing and event.key() in (Qt.Key_Return, Qt.Key_Enter):
-            self.start_capture()
+        if event.key() in (Qt.Key_Tab, Qt.Key_Backtab):
+            self.cancel_capture()
+            super().keyPressEvent(event)
             return
         if not self._capturing:
             super().keyPressEvent(event)

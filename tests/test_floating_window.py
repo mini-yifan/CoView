@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from PyQt5.QtCore import QByteArray, QEvent, QPoint, QRect, Qt
-from PyQt5.QtGui import QColor, QKeyEvent, QMouseEvent, QPixmap
+from PyQt5.QtGui import QColor, QFocusEvent, QKeyEvent, QMouseEvent, QPixmap
 from PyQt5.QtWidgets import QApplication, QLabel, QComboBox, QPushButton, QWidget
 
 from baodou_ai.core.config import Config
@@ -1860,6 +1860,76 @@ def test_shortcut_capture_button_rejects_enter_and_tab(monkeypatch, tmp_path):
 
     assert config.get("shortcut_config.windows.activate") == ["ctrl", "alt", "i"]
     assert button.text() == "Ctrl+Alt+I"
+
+
+def test_shortcut_capture_button_records_after_tab_focus(monkeypatch, tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr(
+        "baodou_ai.gui.control_console.get_platform_adapter",
+        lambda: fake_platform,
+    )
+    monkeypatch.setattr("baodou_ai.gui.shortcut_config.sys.platform", "win32")
+
+    changes = []
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    window = ControlConsoleWindow(
+        config,
+        RuntimeLogBuffer(),
+        on_config_changed=lambda key, value: changes.append((key, value)),
+    )
+    button = window._shortcut_widgets["activate"]
+
+    button.focusInEvent(QFocusEvent(QEvent.FocusIn, Qt.TabFocusReason))
+    button.keyPressEvent(
+        QKeyEvent(QEvent.KeyPress, Qt.Key_K, Qt.ControlModifier | Qt.ShiftModifier)
+    )
+
+    assert config.get("shortcut_config.windows.activate") == ["ctrl", "shift", "k"]
+    assert button.text() == "Ctrl+Shift+K"
+    assert changes[-1] == ("shortcut_config.windows.activate", ["ctrl", "shift", "k"])
+
+
+def test_shortcut_capture_button_tab_leaves_without_saving(monkeypatch, tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr(
+        "baodou_ai.gui.control_console.get_platform_adapter",
+        lambda: fake_platform,
+    )
+    monkeypatch.setattr("baodou_ai.gui.shortcut_config.sys.platform", "win32")
+
+    changes = []
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    window = ControlConsoleWindow(
+        config,
+        RuntimeLogBuffer(),
+        on_config_changed=lambda key, value: changes.append((key, value)),
+    )
+    button = window._shortcut_widgets["activate"]
+
+    button.focusInEvent(QFocusEvent(QEvent.FocusIn, Qt.TabFocusReason))
+    assert button.text() == "请按新的快捷键"
+
+    button.focusOutEvent(QFocusEvent(QEvent.FocusOut, Qt.TabFocusReason))
+
+    assert config.get("shortcut_config.windows.activate") == ["ctrl", "alt", "i"]
+    assert button.text() == "Ctrl+Alt+I"
+    assert changes == []
 
 
 def test_shortcut_capture_button_maps_macos_physical_control_and_command(
