@@ -1862,6 +1862,45 @@ def test_shortcut_capture_button_rejects_enter_and_tab(monkeypatch, tmp_path):
     assert button.text() == "Ctrl+Alt+I"
 
 
+def test_shortcut_capture_button_maps_macos_physical_control_and_command(
+    monkeypatch, tmp_path
+):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr(
+        "baodou_ai.gui.control_console.get_platform_adapter",
+        lambda: fake_platform,
+    )
+    monkeypatch.setattr("baodou_ai.gui.shortcut_config.sys.platform", "darwin")
+
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    window = ControlConsoleWindow(config, RuntimeLogBuffer())
+    button = window._shortcut_widgets["activate"]
+
+    button.start_capture()
+    button.keyPressEvent(
+        QKeyEvent(QEvent.KeyPress, Qt.Key_K, Qt.MetaModifier | Qt.AltModifier)
+    )
+
+    assert config.get("shortcut_config.macos.activate") == ["control", "option", "k"]
+    assert button.text() == "Control+Option+K"
+
+    button.start_capture()
+    button.keyPressEvent(
+        QKeyEvent(QEvent.KeyPress, Qt.Key_J, Qt.ControlModifier | Qt.AltModifier)
+    )
+
+    assert config.get("shortcut_config.macos.activate") == ["option", "command", "j"]
+    assert button.text() == "Option+Command+J"
+
+
 def test_control_console_fills_tts_api_key_from_model_for_aliyun(monkeypatch, tmp_path):
     app = QApplication.instance() or QApplication([])
     assert app is not None

@@ -240,13 +240,15 @@ class ShortcutCaptureButton(QPushButton):
         modifiers = event.modifiers()
         platform_name = current_shortcut_platform()
         if platform_name == "macos":
-            if modifiers & Qt.ControlModifier:
+            # Qt follows macOS menu-shortcut semantics here: ControlModifier is
+            # the Command key, while MetaModifier is the physical Control key.
+            if modifiers & Qt.MetaModifier:
                 keys.append("control")
             if modifiers & Qt.AltModifier:
                 keys.append("option")
             if modifiers & Qt.ShiftModifier:
                 keys.append("shift")
-            if modifiers & Qt.MetaModifier:
+            if modifiers & Qt.ControlModifier:
                 keys.append("command")
         else:
             if modifiers & Qt.ControlModifier:
