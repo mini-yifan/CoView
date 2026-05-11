@@ -2,7 +2,11 @@
 
 <p align="center">
   <a href="README.md">English README</a> ·
-  <a href="docs/zh-CN/README.md">完整项目说明书</a>
+  <a href="docs/zh-CN/README.md">完整项目说明书</a> 
+</p>
+
+<p align="center">
+  <strong><a href="http://www.coview.top/">访问官网：www.coview.top</a></strong>
 </p>
 
 <p align="center">
@@ -10,6 +14,7 @@
 </p>
 
 <p align="center">
+  <a href="http://www.coview.top/"><img alt="官网" src="https://img.shields.io/badge/%E5%AE%98%E6%96%B9%E7%BD%91%E7%AB%99-www.coview.top-FF6B00?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
   <a href="https://github.com/mini-yifan/CoView"><img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-0A84FF?style=for-the-badge"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-111827?style=for-the-badge">

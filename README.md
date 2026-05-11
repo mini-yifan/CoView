@@ -2,7 +2,11 @@
 
 <p align="center">
   <a href="README.zh-CN.md">中文文档</a> ·
-  <a href="docs/en/README.md">Full Documentation</a>
+  <a href="docs/en/README.md">Full Documentation</a> 
+</p>
+
+<p align="center">
+  <strong><a href="http://www.coview.top/">Visit Official Website: www.coview.top</a></strong>
 </p>
 
 <p align="center">
@@ -10,6 +14,7 @@
 </p>
 
 <p align="center">
+  <a href="http://www.coview.top/"><img alt="Official Website" src="https://img.shields.io/badge/Official_Website-www.coview.top-FF6B00?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
   <a href="https://github.com/mini-yifan/CoView"><img alt="Release" src="https://img.shields.io/badge/release-v2.0.0-0A84FF?style=for-the-badge"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-111827?style=for-the-badge">
@@ -114,11 +119,11 @@ Do not commit real API keys to a public repository.
 
 Default model services:
 
-| Capability | Default Provider / Model | Notes |
-| --- | --- | --- |
-| Visual language model | Alibaba Cloud Model Studio / `qwen3.6-35b-a3b` | Can be changed to another OpenAI-compatible visual model provider. |
-| Realtime ASR | Alibaba Cloud Model Studio / `qwen3-asr-flash-realtime` | Provider switching is not supported yet. |
-| TTS | Alibaba Cloud Model Studio / `cosyvoice-v3-flash` | Provider switching is not supported yet. |
+| Capability            | Default Provider / Model                                 | Notes                                                              |
+| --------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Visual language model | Alibaba Cloud Model Studio /`qwen3.6-35b-a3b`          | Can be changed to another OpenAI-compatible visual model provider. |
+| Realtime ASR          | Alibaba Cloud Model Studio /`qwen3-asr-flash-realtime` | Provider switching is not supported yet.                           |
+| TTS                   | Alibaba Cloud Model Studio /`cosyvoice-v3-flash`       | Provider switching is not supported yet.                           |
 
 Apply for the API key from [Alibaba Cloud Model Studio](https://www.alibabacloud.com/help/zh/model-studio/get-api-key). The same DashScope API key is used for the default visual model, [ASR](https://help.aliyun.com/zh/model-studio/asr-model/), and [TTS](https://www.alibabacloud.com/help/zh/model-studio/text-to-speech). Support for additional ASR and TTS providers will be added gradually.
 
