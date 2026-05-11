@@ -1788,6 +1788,51 @@ def test_control_console_shortcut_widgets_save_and_restore(monkeypatch, tmp_path
     assert changes[-1] == ("shortcut_config.windows.activate", ["ctrl", "shift", "k"])
 
 
+def test_control_console_restores_default_shortcuts(monkeypatch, tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr(
+        "baodou_ai.gui.control_console.get_platform_adapter",
+        lambda: fake_platform,
+    )
+    monkeypatch.setattr("baodou_ai.gui.shortcut_config.sys.platform", "win32")
+
+    changes = []
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    config.set("shortcut_config.windows.activate", ["ctrl", "shift", "k"])
+    config.set("shortcut_config.windows.hide", ["alt", "f8"])
+    window = ControlConsoleWindow(
+        config,
+        RuntimeLogBuffer(),
+        on_config_changed=lambda key, value: changes.append((key, value)),
+    )
+
+    restore_button = next(
+        button for button in window.findChildren(QPushButton) if button.text() == "恢复默认"
+    )
+    assert restore_button.accessibleName() == "恢复默认快捷键"
+    assert "回车" in restore_button.accessibleDescription()
+
+    restore_button.setFocus(Qt.TabFocusReason)
+    restore_button.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier))
+
+    assert config.get("shortcut_config.windows.activate") == ["ctrl", "alt", "i"]
+    assert config.get("shortcut_config.windows.hide") == ["ctrl", "alt", "o"]
+    assert window._shortcut_widgets["activate"].text() == "Ctrl+Alt+I"
+    assert window._shortcut_widgets["hide"].text() == "Ctrl+Alt+O"
+    assert changes[-2:] == [
+        ("shortcut_config.windows.activate", ["ctrl", "alt", "i"]),
+        ("shortcut_config.windows.hide", ["ctrl", "alt", "o"]),
+    ]
+
+
 def test_shortcut_capture_button_rejects_enter_and_tab(monkeypatch, tmp_path):
     app = QApplication.instance() or QApplication([])
     assert app is not None

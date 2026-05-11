@@ -68,6 +68,7 @@ from baodou_ai.gui.shortcut_config import (
     display_shortcut,
     get_configured_shortcut,
     normalize_shortcut_keys,
+    platform_shortcut_defaults,
     shortcut_contains_disallowed_key,
     shortcut_is_valid,
 )
@@ -286,6 +287,14 @@ class ShortcutCaptureButton(QPushButton):
         self.setAccessibleDescription(
             t("shortcut_accessible_desc").format(shortcut=shortcut or t("shortcut_unset"))
         )
+
+
+class EnterClickableButton(QPushButton):
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self.click()
+            return
+        super().keyPressEvent(event)
 
 
 class ToggleSwitch(QCheckBox):
@@ -833,6 +842,11 @@ class ControlConsoleWindow(QMainWindow):
                 self._styled_shortcut_button(t("label_shortcut_hide")),
             ),
             t("shortcut_hide_desc"),
+        )
+        card_shortcuts.add_row(
+            t("label_shortcut_restore_defaults"),
+            self._build_restore_shortcuts_button(),
+            t("shortcut_restore_defaults_desc"),
         )
         page.layout().addWidget(card_shortcuts)
 
@@ -1823,6 +1837,16 @@ class ControlConsoleWindow(QMainWindow):
             """)
         return button
 
+    def _build_restore_shortcuts_button(self) -> QPushButton:
+        button = EnterClickableButton(t("button_restore_defaults"))
+        button.setCursor(Qt.PointingHandCursor)
+        button.setFocusPolicy(Qt.StrongFocus)
+        button.setAccessibleName(t("label_shortcut_restore_defaults"))
+        button.setAccessibleDescription(t("shortcut_restore_defaults_accessible_desc"))
+        button.setStyleSheet(self._compact_button_style())
+        button.clicked.connect(self._restore_default_shortcuts)
+        return button
+
     def _build_language_button(self, locale_value: str, label: str) -> QPushButton:
         button = QPushButton(label)
         button.setCursor(Qt.PointingHandCursor)
@@ -2114,6 +2138,17 @@ class ControlConsoleWindow(QMainWindow):
         self._load_shortcut_values()
         self._notify_config_changed(key, normalized)
         self._show_shortcut_status(t("shortcut_saved"))
+
+    def _restore_default_shortcuts(self) -> None:
+        platform_name = current_shortcut_platform()
+        defaults = platform_shortcut_defaults(platform_name)
+        for action, keys in defaults.items():
+            key = f"shortcut_config.{platform_name}.{action}"
+            self._config.set(key, list(keys))
+            self._notify_config_changed(key, list(keys))
+        self._config.save()
+        self._load_shortcut_values()
+        self._show_shortcut_status(t("shortcut_defaults_restored"))
 
     def _set_config_value(self, key: str, value) -> None:
         self._config.set(key, value)
