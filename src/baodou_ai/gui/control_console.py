@@ -61,6 +61,16 @@ from baodou_ai.core.update_checker import (
 from baodou_ai.gui.control_console_jobs import CodeAgentJobsPanel
 from baodou_ai.gui.i18n import set_locale, t, translate
 from baodou_ai.gui.runtime_log import RuntimeLogBuffer
+from baodou_ai.gui.shortcut_config import (
+    SHORTCUT_ACTION_ACTIVATE,
+    SHORTCUT_ACTION_HIDE,
+    current_shortcut_platform,
+    display_shortcut,
+    get_configured_shortcut,
+    normalize_shortcut_keys,
+    shortcut_contains_disallowed_key,
+    shortcut_is_valid,
+)
 from baodou_ai.platform import get_platform_adapter
 
 # 黑白灰极简风格（与悬浮球显示框统一）
@@ -176,6 +186,106 @@ class _NoWheelComboBox(QComboBox):
         super().hidePopup()
         for i in range(self.count()):
             self.setItemText(i, self._display_texts[i])
+
+
+class ShortcutCaptureButton(QPushButton):
+    shortcutCaptured = pyqtSignal(object)
+    captureRejected = pyqtSignal(str)
+
+    def __init__(self, label: str, parent=None) -> None:
+        super().__init__(parent)
+        self._label = label
+        self._capturing = False
+        self._keys: List[str] = []
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.clicked.connect(self.start_capture)
+
+    def set_shortcut_keys(self, keys: List[str]) -> None:
+        self._keys = list(keys)
+        if not self._capturing:
+            self.setText(display_shortcut(self._keys, current_shortcut_platform()))
+        self._sync_accessible_text()
+
+    def start_capture(self) -> None:
+        self._capturing = True
+        self.setText(t("shortcut_recording"))
+        self.setFocus(Qt.OtherFocusReason)
+        self._sync_accessible_text()
+
+    def keyPressEvent(self, event) -> None:
+        if not self._capturing and event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self.start_capture()
+            return
+        if not self._capturing:
+            super().keyPressEvent(event)
+            return
+
+        keys = self._keys_from_event(event)
+        if shortcut_contains_disallowed_key(keys):
+            self._capturing = False
+            self.captureRejected.emit(t("shortcut_error_enter_tab"))
+            self.set_shortcut_keys(self._keys)
+            return
+        normalized = normalize_shortcut_keys(keys, current_shortcut_platform())
+        if not shortcut_is_valid(normalized, current_shortcut_platform()):
+            self.captureRejected.emit(t("shortcut_error_invalid"))
+            return
+        self._capturing = False
+        self.shortcutCaptured.emit(normalized)
+
+    def _keys_from_event(self, event) -> List[str]:
+        keys: List[str] = []
+        modifiers = event.modifiers()
+        platform_name = current_shortcut_platform()
+        if platform_name == "macos":
+            if modifiers & Qt.ControlModifier:
+                keys.append("control")
+            if modifiers & Qt.AltModifier:
+                keys.append("option")
+            if modifiers & Qt.ShiftModifier:
+                keys.append("shift")
+            if modifiers & Qt.MetaModifier:
+                keys.append("command")
+        else:
+            if modifiers & Qt.ControlModifier:
+                keys.append("ctrl")
+            if modifiers & Qt.AltModifier:
+                keys.append("alt")
+            if modifiers & Qt.ShiftModifier:
+                keys.append("shift")
+            if modifiers & Qt.MetaModifier:
+                keys.append("win")
+
+        main_key = self._main_key_name(event.key())
+        if main_key:
+            keys.append(main_key)
+        return keys
+
+    def _main_key_name(self, key: int) -> str:
+        if Qt.Key_A <= key <= Qt.Key_Z:
+            return chr(ord("a") + key - Qt.Key_A)
+        if Qt.Key_0 <= key <= Qt.Key_9:
+            return chr(ord("0") + key - Qt.Key_0)
+        if Qt.Key_F1 <= key <= Qt.Key_F24:
+            return f"f{key - Qt.Key_F1 + 1}"
+        special = {
+            Qt.Key_Return: "enter",
+            Qt.Key_Enter: "enter",
+            Qt.Key_Tab: "tab",
+            Qt.Key_Space: "space",
+            Qt.Key_Escape: "escape",
+            Qt.Key_Backspace: "backspace",
+            Qt.Key_Delete: "delete",
+        }
+        return special.get(key, "")
+
+    def _sync_accessible_text(self) -> None:
+        shortcut = display_shortcut(self._keys, current_shortcut_platform())
+        self.setAccessibleName(self._label)
+        self.setAccessibleDescription(
+            t("shortcut_accessible_desc").format(shortcut=shortcut or t("shortcut_unset"))
+        )
 
 
 class ToggleSwitch(QCheckBox):
@@ -443,6 +553,7 @@ class ControlConsoleWindow(QMainWindow):
         self._job_refresh_timer.timeout.connect(self.refresh_jobs)
         self._config_widgets: Dict[str, QWidget] = {}
         self._wake_word_phrase_widgets: Dict[str, QLineEdit] = {}
+        self._shortcut_widgets: Dict[str, ShortcutCaptureButton] = {}
         self._jobs_panel: Optional[CodeAgentJobsPanel] = None
         self._current_status_key = "ready"
         self._current_status_text = t("agent_ready")
@@ -705,6 +816,25 @@ class ControlConsoleWindow(QMainWindow):
             t("general_model_desc"),
         )
         page.layout().addWidget(card_api)
+
+        card_shortcuts = SectionCard(t("section_shortcuts"), t("general_shortcuts_desc"))
+        card_shortcuts.add_row(
+            t("label_shortcut_activate"),
+            self._register_shortcut_widget(
+                SHORTCUT_ACTION_ACTIVATE,
+                self._styled_shortcut_button(t("label_shortcut_activate")),
+            ),
+            t("shortcut_activate_desc"),
+        )
+        card_shortcuts.add_row(
+            t("label_shortcut_hide"),
+            self._register_shortcut_widget(
+                SHORTCUT_ACTION_HIDE,
+                self._styled_shortcut_button(t("label_shortcut_hide")),
+            ),
+            t("shortcut_hide_desc"),
+        )
+        page.layout().addWidget(card_shortcuts)
 
         card_ai = SectionCard(t("section_ai"), t("general_ai_desc"))
         card_ai.add_row(
@@ -1672,6 +1802,27 @@ class ControlConsoleWindow(QMainWindow):
             """)
         return label
 
+    def _styled_shortcut_button(self, label: str) -> ShortcutCaptureButton:
+        button = ShortcutCaptureButton(label)
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {PALETTE['input_bg']};
+                border: 1px solid {PALETTE['input_border']};
+                border-radius: 11px;
+                color: {PALETTE['text_primary']};
+                padding: 0 14px;
+                font-size: 13px;
+                font-weight: 700;
+                min-height: 38px;
+                text-align: center;
+            }}
+            QPushButton:hover, QPushButton:focus {{
+                border-color: {PALETTE['input_focus']};
+                background-color: #FAFAFB;
+            }}
+            """)
+        return button
+
     def _build_language_button(self, locale_value: str, label: str) -> QPushButton:
         button = QPushButton(label)
         button.setCursor(Qt.PointingHandCursor)
@@ -1709,6 +1860,18 @@ class ControlConsoleWindow(QMainWindow):
             widget.set_items(
                 raw_values, [self._combo_option_label(key, value) for value in raw_values]
             )
+        return widget
+
+    def _register_shortcut_widget(
+        self,
+        action: str,
+        widget: ShortcutCaptureButton,
+    ) -> ShortcutCaptureButton:
+        self._shortcut_widgets[action] = widget
+        widget.shortcutCaptured.connect(
+            lambda keys, action=action: self._set_shortcut_config(action, keys)
+        )
+        widget.captureRejected.connect(self._show_shortcut_status)
         return widget
 
     def _register_wake_word_phrase_widget(self, language: str, widget: QLineEdit) -> QLineEdit:
@@ -1859,6 +2022,7 @@ class ControlConsoleWindow(QMainWindow):
         existing_log_html = self.log_text.toHtml() if hasattr(self, "log_text") else ""
         self._config_widgets = {}
         self._wake_word_phrase_widgets = {}
+        self._shortcut_widgets = {}
         self._jobs_panel = None
         self.setWindowTitle(t("settings_window_title"))
         self._rebuild_content_ui()
@@ -1903,11 +2067,20 @@ class ControlConsoleWindow(QMainWindow):
                 widget.setValue(float(value or 0.0))
                 widget.blockSignals(False)
         self._load_wake_word_phrase_values()
+        self._load_shortcut_values()
 
     def _load_wake_word_phrase_values(self) -> None:
         for language, widget in self._wake_word_phrase_widgets.items():
             widget.blockSignals(True)
             widget.setText(self._config.get_wake_word_phrase(language))
+            widget.blockSignals(False)
+
+    def _load_shortcut_values(self) -> None:
+        platform_name = current_shortcut_platform()
+        for action, widget in self._shortcut_widgets.items():
+            keys = get_configured_shortcut(self._config, action, platform_name)
+            widget.blockSignals(True)
+            widget.set_shortcut_keys(keys)
             widget.blockSignals(False)
 
     def _set_text_config(self, key: str, value: str) -> None:
@@ -1928,11 +2101,33 @@ class ControlConsoleWindow(QMainWindow):
             self._config.get("wake_word_config.phrases"),
         )
 
+    def _set_shortcut_config(self, action: str, keys: List[str]) -> None:
+        platform_name = current_shortcut_platform()
+        normalized = normalize_shortcut_keys(keys, platform_name)
+        if not shortcut_is_valid(normalized, platform_name):
+            self._show_shortcut_status(t("shortcut_error_invalid"))
+            self._load_shortcut_values()
+            return
+        key = f"shortcut_config.{platform_name}.{action}"
+        self._config.set(key, normalized)
+        self._config.save()
+        self._load_shortcut_values()
+        self._notify_config_changed(key, normalized)
+        self._show_shortcut_status(t("shortcut_saved"))
+
     def _set_config_value(self, key: str, value) -> None:
         self._config.set(key, value)
         self._config.save()
         self._notify_config_changed(key, value)
         self._maybe_fill_tts_api_key_from_model(key)
+
+    def _show_shortcut_status(self, message: str) -> None:
+        if not message:
+            return
+        try:
+            self._log_buffer.append_log(f"[SETTINGS] {message}\n", "info")
+        except Exception:
+            pass
 
     @classmethod
     def _is_aliyun_base_url(cls, value: Any) -> bool:

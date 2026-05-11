@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from PyQt5.QtCore import QByteArray, QEvent, QPoint, QRect, Qt
-from PyQt5.QtGui import QColor, QMouseEvent, QPixmap
+from PyQt5.QtGui import QColor, QKeyEvent, QMouseEvent, QPixmap
 from PyQt5.QtWidgets import QApplication, QLabel, QComboBox, QPushButton, QWidget
 
 from baodou_ai.core.config import Config
@@ -630,6 +630,48 @@ def test_floating_controller_registers_windows_global_hotkeys(monkeypatch):
     ]
     assert controller._windows_hotkey_hwnd == 123456
     assert fake_app.installed_filters == [controller._windows_hotkey_filter]
+
+
+def test_floating_controller_registers_configured_windows_global_hotkeys(monkeypatch, tmp_path):
+    fake_app = _FakeNativeEventApp()
+    fake_user32 = _FakeUser32Hotkey()
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    config.set("shortcut_config.windows.activate", ["ctrl", "shift", "k"])
+    config.set("shortcut_config.windows.hide", ["alt", "f8"])
+    controller = FloatingController.__new__(FloatingController)
+    controller.app = fake_app
+    controller._config = config
+    controller._log_buffer = RuntimeLogBuffer()
+    controller.ball_window = _FakeHotkeyWindow(hwnd=123456)
+    controller._windows_user32 = None
+    controller._windows_hotkey_hwnd = None
+    controller._windows_registered_hotkey_ids = []
+    controller._windows_hotkey_filter = None
+
+    monkeypatch.setattr("baodou_ai.gui.floating.controller.sys.platform", "win32")
+    monkeypatch.setattr(
+        "baodou_ai.gui.floating.controller._get_windows_user32",
+        lambda: fake_user32,
+    )
+
+    controller._setup_global_hotkey()
+
+    assert fake_user32.register_calls == [
+        (
+            123456,
+            FloatingController._WINDOWS_HOTKEY_ACTIVATE_ID,
+            FloatingController._WINDOWS_MOD_CONTROL
+            | 0x0004
+            | FloatingController._WINDOWS_MOD_NOREPEAT,
+            0x4B,
+        ),
+        (
+            123456,
+            FloatingController._WINDOWS_HOTKEY_HIDE_ID,
+            FloatingController._WINDOWS_MOD_ALT | FloatingController._WINDOWS_MOD_NOREPEAT,
+            0x77,
+        ),
+    ]
 
 
 def test_floating_controller_matches_macos_control_option_hotkeys():
@@ -1712,6 +1754,69 @@ def test_control_console_wake_word_phrase_widgets_save_and_restore(monkeypatch, 
     assert restored_window._wake_word_phrase_widgets["en"].text() == "Hey CoView"
 
 
+def test_control_console_shortcut_widgets_save_and_restore(monkeypatch, tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr(
+        "baodou_ai.gui.control_console.get_platform_adapter",
+        lambda: fake_platform,
+    )
+    monkeypatch.setattr("baodou_ai.gui.shortcut_config.sys.platform", "win32")
+
+    changes = []
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    window = ControlConsoleWindow(
+        config,
+        RuntimeLogBuffer(),
+        on_config_changed=lambda key, value: changes.append((key, value)),
+    )
+
+    assert "activate" in window._shortcut_widgets
+    assert window._shortcut_widgets["activate"].text() == "Ctrl+Alt+I"
+
+    window._set_shortcut_config("activate", ["ctrl", "shift", "k"])
+
+    assert config.get("shortcut_config.windows.activate") == ["ctrl", "shift", "k"]
+    assert window._shortcut_widgets["activate"].text() == "Ctrl+Shift+K"
+    assert changes[-1] == ("shortcut_config.windows.activate", ["ctrl", "shift", "k"])
+
+
+def test_shortcut_capture_button_rejects_enter_and_tab(monkeypatch, tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr(
+        "baodou_ai.gui.control_console.get_platform_adapter",
+        lambda: fake_platform,
+    )
+    monkeypatch.setattr("baodou_ai.gui.shortcut_config.sys.platform", "win32")
+
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    window = ControlConsoleWindow(config, RuntimeLogBuffer())
+    button = window._shortcut_widgets["activate"]
+
+    button.start_capture()
+    button.keyPressEvent(
+        QKeyEvent(QEvent.KeyPress, Qt.Key_Tab, Qt.ControlModifier | Qt.AltModifier)
+    )
+
+    assert config.get("shortcut_config.windows.activate") == ["ctrl", "alt", "i"]
+    assert button.text() == "Ctrl+Alt+I"
+
+
 def test_control_console_fills_tts_api_key_from_model_for_aliyun(monkeypatch, tmp_path):
     app = QApplication.instance() or QApplication([])
     assert app is not None
@@ -1850,6 +1955,21 @@ def test_floating_controller_reloads_ball_asset_when_console_config_changes():
     controller._handle_console_config_changed("tts_config.enabled", True)
 
     assert reloads == [True]
+
+
+def test_floating_controller_refreshes_hotkeys_when_console_shortcut_changes():
+    refreshes = []
+    controller = FloatingController.__new__(FloatingController)
+    controller._refresh_global_hotkey = lambda: refreshes.append(True)
+    controller.ball_window = SimpleNamespace(reload_asset=lambda: None)
+
+    controller._handle_console_config_changed(
+        "shortcut_config.windows.activate",
+        ["ctrl", "alt", "k"],
+    )
+    controller._handle_console_config_changed("tts_config.enabled", True)
+
+    assert refreshes == [True]
 
 
 def test_panel_window_switches_between_idle_running_and_finished_states():

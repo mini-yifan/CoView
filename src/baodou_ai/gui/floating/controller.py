@@ -45,6 +45,13 @@ from baodou_ai.gui.floating.voice_controller import VoiceInteractionController
 from baodou_ai.gui.frontmost_tracker import FrontmostAppTracker
 from baodou_ai.gui.i18n import on_locale_changed, set_locale, t, translate
 from baodou_ai.gui.runtime_log import RuntimeLogBuffer
+from baodou_ai.gui.shortcut_config import (
+    SHORTCUT_ACTION_ACTIVATE,
+    SHORTCUT_ACTION_HIDE,
+    get_configured_shortcut,
+    macos_shortcut_matches_event,
+    windows_shortcut_to_native,
+)
 from baodou_ai.platform import get_platform_adapter
 from baodou_ai.platform import cancel_current_mouse_motion
 from baodou_ai.voice.sherpa_keyword_spotter import WakeWordHit
@@ -117,20 +124,6 @@ class FloatingController:
     _WINDOWS_VK_O = 0x4F
     _WINDOWS_HOTKEY_ACTIVATE_ID = 0xBA01
     _WINDOWS_HOTKEY_HIDE_ID = 0xBA02
-    _WINDOWS_HOTKEYS = (
-        (
-            _WINDOWS_HOTKEY_ACTIVATE_ID,
-            _WINDOWS_MOD_CONTROL | _WINDOWS_MOD_ALT | _WINDOWS_MOD_NOREPEAT,
-            _WINDOWS_VK_I,
-            "Ctrl+Alt+I",
-        ),
-        (
-            _WINDOWS_HOTKEY_HIDE_ID,
-            _WINDOWS_MOD_CONTROL | _WINDOWS_MOD_ALT | _WINDOWS_MOD_NOREPEAT,
-            _WINDOWS_VK_O,
-            "Ctrl+Alt+O",
-        ),
-    )
 
     def __init__(self, app: QApplication, config: Optional[Config] = None, log_buffer: Optional[RuntimeLogBuffer] = None):
         self.app = app
@@ -314,6 +307,27 @@ class FloatingController:
             self._global_hotkey_monitor = None
             self._local_hotkey_monitor = None
 
+    def _configured_windows_hotkeys(self) -> List[tuple[int, int, int, str]]:
+        hotkeys: List[tuple[int, int, int, str]] = []
+        for hotkey_id, action in (
+            (self._WINDOWS_HOTKEY_ACTIVATE_ID, SHORTCUT_ACTION_ACTIVATE),
+            (self._WINDOWS_HOTKEY_HIDE_ID, SHORTCUT_ACTION_HIDE),
+        ):
+            keys = get_configured_shortcut(
+                getattr(self, "_config", None),
+                action,
+                "windows",
+            )
+            native = windows_shortcut_to_native(keys)
+            if native is None:
+                continue
+            modifiers, virtual_key = native
+            label = "+".join(keys)
+            hotkeys.append(
+                (hotkey_id, modifiers | self._WINDOWS_MOD_NOREPEAT, virtual_key, label)
+            )
+        return hotkeys
+
     def _setup_windows_global_hotkey(self) -> None:
         if getattr(self, "_windows_registered_hotkey_ids", []):
             return
@@ -348,7 +362,7 @@ class FloatingController:
             self._windows_user32 = user32
             self._windows_hotkey_hwnd = hotkey_hwnd
             self._windows_registered_hotkey_ids = []
-            for hotkey_id, modifiers, virtual_key, label in self._WINDOWS_HOTKEYS:
+            for hotkey_id, modifiers, virtual_key, label in self._configured_windows_hotkeys():
                 registered = bool(
                     user32.RegisterHotKey(hotkey_hwnd, hotkey_id, modifiers, virtual_key)
                 )
@@ -388,6 +402,10 @@ class FloatingController:
             return
         self._teardown_macos_global_hotkey()
 
+    def _refresh_global_hotkey(self) -> None:
+        self._teardown_global_hotkey()
+        self._setup_global_hotkey()
+
     def _teardown_macos_global_hotkey(self) -> None:
         try:
             from AppKit import NSEvent
@@ -425,22 +443,20 @@ class FloatingController:
         self._windows_user32 = None
 
     def _is_hotkey_event(self, event) -> bool:
-        try:
-            modifier_flags = event.modifierFlags()
-            control = modifier_flags & (1 << 18)
-            option = modifier_flags & (1 << 19)
-            return bool(control) and bool(option) and event.keyCode() == 34
-        except Exception:
-            return False
+        keys = get_configured_shortcut(
+            getattr(self, "_config", None),
+            SHORTCUT_ACTION_ACTIVATE,
+            "macos",
+        )
+        return macos_shortcut_matches_event(keys, event)
 
     def _is_hide_hotkey_event(self, event) -> bool:
-        try:
-            modifier_flags = event.modifierFlags()
-            control = modifier_flags & (1 << 18)
-            option = modifier_flags & (1 << 19)
-            return bool(control) and bool(option) and event.keyCode() == 31
-        except Exception:
-            return False
+        keys = get_configured_shortcut(
+            getattr(self, "_config", None),
+            SHORTCUT_ACTION_HIDE,
+            "macos",
+        )
+        return macos_shortcut_matches_event(keys, event)
 
     def _global_hotkey_handler(self, event) -> None:
         try:
@@ -603,6 +619,8 @@ class FloatingController:
         return self._console_window
 
     def _handle_console_config_changed(self, key: str, value) -> None:
+        if key.startswith("shortcut_config."):
+            self._refresh_global_hotkey()
         if key.startswith("floating_ball_config."):
             self.ball_window.reload_asset()
         if key.startswith("voice_interaction_config."):

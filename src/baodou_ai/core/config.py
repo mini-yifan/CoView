@@ -184,6 +184,16 @@ DEFAULT_CONFIG = {
         "animation_always_play": False,
         "reset_animation_on_leave": True,
     },
+    "shortcut_config": {
+        "windows": {
+            "activate": ["ctrl", "alt", "i"],
+            "hide": ["ctrl", "alt", "o"],
+        },
+        "macos": {
+            "activate": ["control", "option", "i"],
+            "hide": ["control", "option", "o"],
+        },
+    },
     "companion_config": {
         "enabled": True,
         "disable_thinking": True,
@@ -627,6 +637,11 @@ class Config:
     def floating_ball_config(self) -> Dict[str, Any]:
         """获取悬浮球外观配置"""
         return self._config.get("floating_ball_config", DEFAULT_CONFIG["floating_ball_config"])
+
+    @property
+    def shortcut_config(self) -> Dict[str, Any]:
+        """Get floating overlay shortcut configuration."""
+        return self._config.get("shortcut_config", DEFAULT_CONFIG["shortcut_config"])
 
     @property
     def companion_config(self) -> Dict[str, Any]:
