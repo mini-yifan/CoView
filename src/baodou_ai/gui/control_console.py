@@ -39,6 +39,7 @@ from PyQt5.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSpinBox,
@@ -592,6 +593,7 @@ class ControlConsoleWindow(QMainWindow):
         self._stack: Optional[QStackedWidget] = None
         self._sidebar: Optional[QListWidget] = None
         self._footer_sidebar: Optional[QListWidget] = None
+        self._restore_defaults_button: Optional[QPushButton] = None
         self._current_page_id = "general"
         self._update_check_worker: Optional[UpdateCheckWorker] = None
         self._update_status_label: Optional[QLabel] = None
@@ -668,6 +670,7 @@ class ControlConsoleWindow(QMainWindow):
         )
         layout.addWidget(self._sidebar, 0, Qt.AlignTop)
         layout.addStretch(1)
+        layout.addWidget(self._build_restore_all_defaults_sidebar_button(), 0, Qt.AlignBottom)
 
         divider = QFrame()
         divider.setFixedHeight(1)
@@ -729,6 +732,23 @@ class ControlConsoleWindow(QMainWindow):
         sidebar.setFixedHeight(self._sidebar_list_height(len(items), top_padding, bottom_padding))
         sidebar.currentItemChanged.connect(self._on_sidebar_item_changed)
         return sidebar
+
+    def _build_restore_all_defaults_sidebar_button(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(16, 0, 16, 10)
+        layout.setSpacing(0)
+
+        button = EnterClickableButton(t("settings_restore_defaults_button"))
+        button.setCursor(Qt.PointingHandCursor)
+        button.setFocusPolicy(Qt.StrongFocus)
+        button.setAccessibleName(t("settings_restore_defaults_button"))
+        button.setAccessibleDescription(t("settings_restore_defaults_accessible_desc"))
+        button.setStyleSheet(self._restore_defaults_sidebar_button_style(restored=False))
+        button.clicked.connect(self._confirm_restore_all_defaults)
+        self._restore_defaults_button = button
+        layout.addWidget(button)
+        return container
 
     def _sidebar_list_height(self, item_count: int, top_padding: int, bottom_padding: int) -> int:
         # Keep all sidebar items visible without scrolling and let the footer block
@@ -1970,6 +1990,32 @@ class ControlConsoleWindow(QMainWindow):
             }}
             """
 
+    def _restore_defaults_sidebar_button_style(self, *, restored: bool) -> str:
+        background = "#ECFDF5" if restored else PALETTE["input_bg"]
+        border = PALETTE["status_ready"] if restored else PALETTE["input_border"]
+        color = PALETTE["status_ready"] if restored else PALETTE["text_primary"]
+        return f"""
+            QPushButton {{
+                background-color: {background};
+                border: 1px solid {border};
+                border-radius: 10px;
+                color: {color};
+                padding: 0 12px;
+                font-size: 12px;
+                font-weight: 700;
+                min-height: 36px;
+            }}
+            QPushButton:hover {{
+                border-color: {PALETTE['text_primary']};
+                background-color: #FAFAFB;
+            }}
+            QPushButton:disabled {{
+                color: {color};
+                background-color: {background};
+                border-color: {border};
+            }}
+            """
+
     def _small_button_style(self) -> str:
         return f"""
             QPushButton {{
@@ -2068,6 +2114,7 @@ class ControlConsoleWindow(QMainWindow):
         self._wake_word_phrase_widgets = {}
         self._shortcut_widgets = {}
         self._jobs_panel = None
+        self._restore_defaults_button = None
         self.setWindowTitle(t("settings_window_title"))
         self._rebuild_content_ui()
         self._connect_config_signals()
@@ -2170,6 +2217,72 @@ class ControlConsoleWindow(QMainWindow):
         self._load_shortcut_values()
         self._show_shortcut_status(t("shortcut_defaults_restored"))
 
+    def _confirm_restore_all_defaults(self) -> None:
+        if not self._ask_restore_all_defaults_confirmation():
+            return
+        self._restore_all_defaults()
+
+    def _ask_restore_all_defaults_confirmation(self) -> bool:
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setWindowTitle(t("settings_restore_defaults_title"))
+        msg_box.setText(t("settings_restore_defaults_text"))
+        msg_box.setInformativeText(t("settings_restore_defaults_detail"))
+        cancel_button = msg_box.addButton(
+            t("settings_restore_defaults_cancel"),
+            QMessageBox.RejectRole,
+        )
+        confirm_button = msg_box.addButton(
+            t("settings_restore_defaults_confirm"),
+            QMessageBox.AcceptRole,
+        )
+        msg_box.setDefaultButton(cancel_button)
+        msg_box.exec_()
+        return msg_box.clickedButton() is confirm_button
+
+    def _restore_all_defaults(self) -> None:
+        self._config.reset_to_defaults()
+        set_locale(str(self._config.get("locale_config.locale", "zh_CN") or "zh_CN"))
+        restored_config = self._config.as_dict()
+        self._refresh_all_ui_text()
+        for key, value in self._iter_config_leaf_items(restored_config):
+            self._notify_config_changed(key, value)
+        self._show_settings_status(t("settings_defaults_restored"))
+        self._show_restore_all_defaults_feedback()
+
+    def _show_restore_all_defaults_feedback(self) -> None:
+        button = self._restore_defaults_button
+        if button is None:
+            return
+        button.setEnabled(False)
+        button.setText(t("settings_restore_defaults_done"))
+        button.setStyleSheet(self._restore_defaults_sidebar_button_style(restored=True))
+        QTimer.singleShot(1800, self._reset_restore_all_defaults_feedback)
+
+    def _reset_restore_all_defaults_feedback(self) -> None:
+        button = self._restore_defaults_button
+        if button is None:
+            return
+        button.setEnabled(True)
+        button.setText(t("settings_restore_defaults_button"))
+        button.setStyleSheet(self._restore_defaults_sidebar_button_style(restored=False))
+
+    def _show_settings_status(self, message: str) -> None:
+        if not message:
+            return
+        try:
+            self._log_buffer.append_log(f"[SETTINGS] {message}\n", "info")
+        except Exception:
+            pass
+
+    def _iter_config_leaf_items(self, data: Any, prefix: str = ""):
+        if isinstance(data, dict):
+            for key, value in data.items():
+                child_prefix = f"{prefix}.{key}" if prefix else str(key)
+                yield from self._iter_config_leaf_items(value, child_prefix)
+            return
+        yield prefix, data
+
     def _set_config_value(self, key: str, value) -> None:
         self._config.set(key, value)
         self._config.save()
@@ -2179,10 +2292,7 @@ class ControlConsoleWindow(QMainWindow):
     def _show_shortcut_status(self, message: str) -> None:
         if not message:
             return
-        try:
-            self._log_buffer.append_log(f"[SETTINGS] {message}\n", "info")
-        except Exception:
-            pass
+        self._show_settings_status(message)
 
     @classmethod
     def _is_aliyun_base_url(cls, value: Any) -> bool:

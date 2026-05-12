@@ -6,7 +6,7 @@ from PyQt5.QtCore import QByteArray, QEvent, QPoint, QRect, Qt
 from PyQt5.QtGui import QColor, QFocusEvent, QKeyEvent, QMouseEvent, QPixmap
 from PyQt5.QtWidgets import QApplication, QLabel, QComboBox, QPushButton, QWidget
 
-from baodou_ai.core.config import Config
+from baodou_ai.core.config import DEFAULT_CONFIG, Config
 from baodou_ai.core.screenshot import CAPTURE_EXCLUDE_PROPERTY
 from baodou_ai.gui.code_agent_window import CodeAgentJobWindow
 from baodou_ai.gui.control_console import ControlConsoleWindow
@@ -2098,6 +2098,91 @@ def test_control_console_shows_footer_entries_and_switches_locale(monkeypatch, t
         )
     finally:
         set_locale("zh_CN")
+
+
+def test_control_console_reset_all_defaults_requires_confirmation(monkeypatch, tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr("baodou_ai.gui.control_console.get_platform_adapter", lambda: fake_platform)
+    monkeypatch.setattr("baodou_ai.gui.shortcut_config.sys.platform", "win32")
+    set_locale("zh_CN")
+
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    config.set("api_config.api_key", "custom-key")
+    config.set("shortcut_config.windows.activate", ["ctrl", "shift", "k"])
+    config.save()
+    window = ControlConsoleWindow(config, RuntimeLogBuffer())
+
+    assert window._restore_defaults_button is not None
+    assert window._restore_defaults_button.text() == "全部恢复默认"
+    assert "二次确认" in window._restore_defaults_button.accessibleDescription()
+
+    monkeypatch.setattr(window, "_ask_restore_all_defaults_confirmation", lambda: False)
+    window._restore_defaults_button.click()
+    app.processEvents()
+
+    assert config.get("api_config.api_key") == "custom-key"
+    assert config.get("shortcut_config.windows.activate") == ["ctrl", "shift", "k"]
+
+
+def test_control_console_reset_all_defaults_restores_config_and_shows_feedback(
+    monkeypatch, tmp_path
+):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+
+    fake_platform = SimpleNamespace(
+        setup_window=lambda _window: None,
+        prevent_screenshot=lambda _window: True,
+        enter_transparent_mode=lambda _window: True,
+        exit_transparent_mode=lambda _window: True,
+    )
+    monkeypatch.setattr("baodou_ai.gui.control_console.get_platform_adapter", lambda: fake_platform)
+    monkeypatch.setattr("baodou_ai.gui.shortcut_config.sys.platform", "win32")
+    set_locale("en_US")
+
+    changes = []
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    config.set("locale_config.locale", "en_US")
+    config.set("api_config.api_key", "custom-key")
+    config.set("tts_config.api_key", "tts-key")
+    config.set("shortcut_config.windows.activate", ["ctrl", "shift", "k"])
+    config.set("wake_word_config.phrases", [{"text": "你好同窗", "language": "zh"}])
+    config.save()
+    window = ControlConsoleWindow(
+        config,
+        RuntimeLogBuffer(),
+        on_config_changed=lambda key, value: changes.append((key, value)),
+    )
+    monkeypatch.setattr(window, "_ask_restore_all_defaults_confirmation", lambda: True)
+
+    assert window.windowTitle() == "CoView Settings"
+
+    window._restore_defaults_button.click()
+    app.processEvents()
+
+    assert config.get("api_config.api_key") == DEFAULT_CONFIG["api_config"]["api_key"]
+    assert config.get("tts_config.api_key") == DEFAULT_CONFIG["tts_config"]["api_key"]
+    assert config.get("shortcut_config.windows.activate") == ["ctrl", "alt", "i"]
+    assert config.get_wake_word_phrase("zh") == "你好小彤"
+    assert config.get("locale_config.locale") == "zh_CN"
+    assert window.windowTitle() == "同窗设置"
+    assert window._config_widgets["api_config.api_key"].text() == ""
+    assert window._shortcut_widgets["activate"].text() == "Ctrl+Alt+I"
+    assert window._restore_defaults_button is not None
+    assert window._restore_defaults_button.text() == "已恢复"
+    assert not window._restore_defaults_button.isEnabled()
+    assert ("api_config.api_key", "") in changes
+    assert ("shortcut_config.windows.activate", ["ctrl", "alt", "i"]) in changes
+
+    set_locale("zh_CN")
 
 
 def test_floating_controller_reloads_ball_asset_when_console_config_changes():

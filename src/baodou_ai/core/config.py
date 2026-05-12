@@ -520,6 +520,18 @@ class Config:
             print(f"保存配置文件失败: {e}")
             return False
 
+    def reset_to_defaults(self) -> Dict[str, Any]:
+        """将当前配置恢复为内置默认值并保存。"""
+        self._config = copy.deepcopy(DEFAULT_CONFIG)
+        self._resolved_paths.clear()
+        self._apply_platform_paths()
+        self.save()
+        return self._config
+
+    def as_dict(self) -> Dict[str, Any]:
+        """返回当前配置的深拷贝。"""
+        return copy.deepcopy(self._config)
+
     def get(self, key: str, default: Any = None) -> Any:
         """获取配置值"""
         keys = key.split(".")
