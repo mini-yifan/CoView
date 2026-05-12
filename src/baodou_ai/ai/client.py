@@ -9,13 +9,23 @@ import os
 import platform
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from urllib.parse import urlparse
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import cv2
 from openai import OpenAI
 from pydantic import BaseModel
 
+from baodou_ai.ai.provider_adapter import ProviderRequestAdapter
+from baodou_ai.ai.provider_profiles import ProviderProfile, get_provider_profile
+from baodou_ai.ai.request_normalizer import AIRequest
+from baodou_ai.ai.response_normalizer import (
+    coerce_content_to_text,
+    coerce_optional_int,
+    extract_text_from_completion,
+    extract_text_from_stream_chunk,
+    extract_usage_metrics,
+)
+from baodou_ai.ai.retry_policy import CompatibilityRetryPolicy
 from baodou_ai.agent.tool_registry import render_tool_prompt
 from baodou_ai.core.config import Config
 from baodou_ai.core.error_envelope import (
@@ -62,8 +72,13 @@ class AIClient:
                 self._memory = MemoryManager(config)
                 self._default_browser_prompt_cache = None
                 self._default_browser_prompt_loaded = False
+                self._provider_disabled_capabilities = {}
             if not hasattr(self, "_prompt_builder"):
                 self._prompt_builder = PromptBuilder()
+            if not hasattr(self, "_provider_disabled_capabilities"):
+                self._provider_disabled_capabilities = {}
+            if not hasattr(self, "_retry_policy"):
+                self._retry_policy = CompatibilityRetryPolicy()
             self._last_parse_error = ""
             self._last_parse_error_envelope = None
             self._last_request_error_envelope = None
@@ -81,6 +96,8 @@ class AIClient:
         self._default_browser_prompt_loaded = False
         self._memory = MemoryManager(config)
         self._stream_usage_supported: Optional[bool] = None
+        self._provider_disabled_capabilities: Dict[str, Set[str]] = {}
+        self._retry_policy = CompatibilityRetryPolicy()
         self._last_parse_error = ""
         self._last_parse_error_envelope: Optional[Dict[str, Any]] = None
         self._last_request_error_envelope: Optional[Dict[str, Any]] = None
@@ -324,21 +341,15 @@ class AIClient:
         self._default_browser_prompt_loaded = True
         return self._default_browser_prompt_cache
 
-    def _is_volcengine_base_url(self) -> bool:
-        """判断当前 base_url 是否属于火山引擎兼容端点。"""
-        base_url = (self._config.api_config.get("base_url", "") or "").strip().lower()
-        if not base_url:
-            return False
+    def _get_provider_profile(self) -> ProviderProfile:
+        """Return the compatibility profile for the configured model endpoint."""
+        return get_provider_profile(self._config.api_config.get("base_url", ""))
 
-        parsed = urlparse(base_url if "://" in base_url else f"https://{base_url}")
-        hostname = (parsed.hostname or "").lower()
-        return any(
-            hostname == domain or hostname.endswith(f".{domain}")
-            for domain in ("volces.com", "volcengine.com", "volcengineapi.com")
-        )
+    def _get_disabled_capabilities(self, profile: ProviderProfile) -> Set[str]:
+        return self._provider_disabled_capabilities.setdefault(profile.name, set())
 
     def _build_extra_body(self) -> Dict[str, Any]:
-        """构造模型调用的 extra_body，并按平台兼容性附加可选字段。"""
+        """构造内部 extra_body，平台裁剪由兼容层统一处理。"""
         extra_body: Dict[str, Any] = {
             "thinking": {
                 "type": self._config.ai_config.get("thinking_type", "disabled")
@@ -346,68 +357,18 @@ class AIClient:
         }
 
         reasoning_effort = self._config.ai_config.get("reasoning_effort", "minimal")
-        if reasoning_effort and self._is_volcengine_base_url():
+        if reasoning_effort:
             extra_body["reasoning_effort"] = reasoning_effort
 
         return extra_body
 
     @staticmethod
     def _coerce_optional_int(value: Any) -> Optional[int]:
-        try:
-            if value is None:
-                return None
-            return int(value)
-        except (TypeError, ValueError):
-            return None
+        return coerce_optional_int(value)
 
     @classmethod
     def _extract_usage_metrics(cls, usage: Any) -> Dict[str, Any]:
-        if usage is None:
-            return {
-                "prompt_tokens": None,
-                "completion_tokens": None,
-                "total_tokens": None,
-                "cached_tokens": None,
-                "reasoning_tokens": None,
-                "token_usage_available": False,
-            }
-
-        if isinstance(usage, dict):
-            getter = usage.get
-        else:
-            getter = lambda key, default=None: getattr(usage, key, default)
-
-        prompt_tokens = cls._coerce_optional_int(getter("prompt_tokens"))
-        completion_tokens = cls._coerce_optional_int(getter("completion_tokens"))
-        total_tokens = cls._coerce_optional_int(getter("total_tokens"))
-        if total_tokens is None and prompt_tokens is not None and completion_tokens is not None:
-            total_tokens = prompt_tokens + completion_tokens
-
-        prompt_details = getter("prompt_tokens_details")
-        completion_details = getter("completion_tokens_details")
-        if isinstance(prompt_details, dict):
-            prompt_details_getter = prompt_details.get
-        else:
-            prompt_details_getter = lambda key, default=None: getattr(prompt_details, key, default)
-        if isinstance(completion_details, dict):
-            completion_details_getter = completion_details.get
-        else:
-            completion_details_getter = lambda key, default=None: getattr(completion_details, key, default)
-
-        cached_tokens = cls._coerce_optional_int(prompt_details_getter("cached_tokens"))
-        reasoning_tokens = cls._coerce_optional_int(completion_details_getter("reasoning_tokens"))
-        token_usage_available = any(
-            value is not None
-            for value in (prompt_tokens, completion_tokens, total_tokens, cached_tokens, reasoning_tokens)
-        )
-        return {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens,
-            "cached_tokens": cached_tokens,
-            "reasoning_tokens": reasoning_tokens,
-            "token_usage_available": token_usage_available,
-        }
+        return extract_usage_metrics(usage)
 
     @staticmethod
     def _should_retry_without_stream_usage(exc: Exception) -> bool:
@@ -424,28 +385,58 @@ class AIClient:
             )
         )
 
-    def _create_stream(self, client: OpenAI, messages: List[Dict[str, Any]], extra_body: Dict[str, Any]) -> Any:
-        request_kwargs: Dict[str, Any] = {
-            "model": self._config.api_config.get("model_name", "qwen3.6-35b-a3b"),
-            "messages": messages,
-            "extra_body": extra_body,
-            "stream": True,
-        }
-        if self._stream_usage_supported is not False:
-            request_kwargs["stream_options"] = {"include_usage": True}
+    def _build_ai_request(
+        self,
+        messages: List[Dict[str, Any]],
+        extra_body: Dict[str, Any],
+        *,
+        stream: bool,
+    ) -> AIRequest:
+        stream_options = None
+        if stream and self._stream_usage_supported is not False:
+            stream_options = {"include_usage": True}
 
-        try:
-            stream = client.chat.completions.create(**request_kwargs)
-            if "stream_options" in request_kwargs:
-                self._stream_usage_supported = True
-            return stream
-        except Exception as exc:
-            if "stream_options" in request_kwargs and self._should_retry_without_stream_usage(exc):
-                request_kwargs.pop("stream_options", None)
-                self._stream_usage_supported = False
-                print("当前接口不支持流式 usage，回退为不携带 stream_options 的流式请求")
-                return client.chat.completions.create(**request_kwargs)
-            raise
+        return AIRequest(
+            model=self._config.api_config.get("model_name", "qwen3.6-35b-a3b"),
+            messages=messages,
+            extra_body=extra_body,
+            stream=stream,
+            stream_options=stream_options,
+        )
+
+    def _adapt_ai_request(self, request: AIRequest) -> Dict[str, Any]:
+        profile = self._get_provider_profile()
+        disabled = self._get_disabled_capabilities(profile)
+        adapted = ProviderRequestAdapter(profile).adapt(request, disabled)
+        if adapted.normalization_actions or adapted.removed_fields or adapted.disabled_capabilities:
+            print(f"AI API 兼容适配: {adapted.log_summary()}")
+        return adapted.kwargs
+
+    def _create_stream(self, client: OpenAI, messages: List[Dict[str, Any]], extra_body: Dict[str, Any]) -> Any:
+        request = self._build_ai_request(messages, extra_body, stream=True)
+        profile = self._get_provider_profile()
+        disabled = self._get_disabled_capabilities(profile)
+
+        while True:
+            adapted = ProviderRequestAdapter(profile).adapt(request, disabled)
+            if adapted.normalization_actions or adapted.removed_fields or adapted.disabled_capabilities:
+                print(f"AI API 兼容适配: {adapted.log_summary()}")
+            try:
+                stream = client.chat.completions.create(**adapted.kwargs)
+                self._stream_usage_supported = "stream_options" in adapted.kwargs
+                return stream
+            except Exception as exc:
+                decision = self._retry_policy.decide(exc, disabled)
+                if decision is None:
+                    raise
+                disabled.add(decision.capability)
+                if decision.capability == "stream_options":
+                    self._stream_usage_supported = False
+                print(
+                    "AI API 兼容回退: "
+                    f"provider={profile.name}; action={decision.action.value}; "
+                    f"reason={decision.reason}; error={exc}"
+                )
 
     def _create_completion(
         self,
@@ -509,14 +500,29 @@ class AIClient:
                 **self._extract_usage_metrics(latest_usage),
             }
 
-        completion = client.chat.completions.create(
-            model=self._config.api_config.get("model_name", "qwen3.6-35b-a3b"),
-            messages=messages,
-            extra_body=extra_body,
-        )
+        request = self._build_ai_request(messages, extra_body, stream=False)
+        profile = self._get_provider_profile()
+        disabled = self._get_disabled_capabilities(profile)
+        while True:
+            adapted = ProviderRequestAdapter(profile).adapt(request, disabled)
+            if adapted.normalization_actions or adapted.removed_fields or adapted.disabled_capabilities:
+                print(f"AI API 兼容适配: {adapted.log_summary()}")
+            try:
+                completion = client.chat.completions.create(**adapted.kwargs)
+                break
+            except Exception as exc:
+                decision = self._retry_policy.decide(exc, disabled)
+                if decision is None:
+                    raise
+                disabled.add(decision.capability)
+                print(
+                    "AI API 兼容回退: "
+                    f"provider={profile.name}; action={decision.action.value}; "
+                    f"reason={decision.reason}; error={exc}"
+                )
         latency_ms = (time.perf_counter() - start_time) * 1000.0
 
-        return completion.choices[0].message.content, {
+        return extract_text_from_completion(completion), {
             "model_latency_ms": latency_ms,
             "first_chunk_ms": latency_ms,
             **self._extract_usage_metrics(getattr(completion, "usage", None)),
@@ -524,44 +530,11 @@ class AIClient:
 
     def _extract_text_from_stream_chunk(self, chunk: Any) -> str:
         """从流式响应块中提取文本内容。"""
-        choices = getattr(chunk, "choices", None) or []
-        if not choices:
-            return ""
-
-        delta = getattr(choices[0], "delta", None)
-        if delta is None:
-            return ""
-
-        content = getattr(delta, "content", None)
-        return self._coerce_stream_content_to_text(content)
+        return extract_text_from_stream_chunk(chunk)
 
     def _coerce_stream_content_to_text(self, content: Any) -> str:
         """兼容不同 SDK 结构，将流式内容归一为字符串。"""
-        if content is None:
-            return ""
-
-        if isinstance(content, str):
-            return content
-
-        if isinstance(content, list):
-            parts: List[str] = []
-            for item in content:
-                if isinstance(item, str):
-                    parts.append(item)
-                    continue
-
-                if isinstance(item, dict):
-                    text = item.get("text")
-                    if isinstance(text, str):
-                        parts.append(text)
-                    continue
-
-                text = getattr(item, "text", None)
-                if isinstance(text, str):
-                    parts.append(text)
-            return "".join(parts)
-
-        return str(content)
+        return coerce_content_to_text(content)
 
     def _parse_and_store_response(
         self,

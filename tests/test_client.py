@@ -8,9 +8,8 @@ from baodou_ai.ai.runtime_prompt_context import RuntimePromptContext
 from baodou_ai.core.config import Config
 
 
-def test_build_extra_body_includes_reasoning_effort_for_volcengine():
+def test_build_extra_body_keeps_internal_reasoning_effort_before_adapter():
     config = Config()
-    config.set("api_config.base_url", "https://ark.cn-beijing.volces.com/api/v3")
     config.set("ai_config.thinking_type", "enabled")
     config.set("ai_config.reasoning_effort", "minimal")
 
@@ -21,17 +20,23 @@ def test_build_extra_body_includes_reasoning_effort_for_volcengine():
     assert extra_body["reasoning_effort"] == "minimal"
 
 
-def test_build_extra_body_omits_reasoning_effort_for_non_volcengine():
+def test_adapter_omits_reasoning_effort_for_non_volcengine():
     config = Config()
-    config.set("api_config.base_url", "https://api.openai.com/v1")
+    config.set("api_config.base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1")
     config.set("ai_config.thinking_type", "enabled")
     config.set("ai_config.reasoning_effort", "minimal")
 
     client = AIClient(config)
-    extra_body = client._build_extra_body()
+    kwargs = client._adapt_ai_request(
+        client._build_ai_request(
+            [{"role": "user", "content": "hello"}],
+            client._build_extra_body(),
+            stream=False,
+        )
+    )
 
-    assert extra_body["thinking"]["type"] == "enabled"
-    assert "reasoning_effort" not in extra_body
+    assert kwargs["extra_body"]["thinking"]["type"] == "enabled"
+    assert "reasoning_effort" not in kwargs.get("extra_body", {})
 
 
 def test_build_full_user_content_includes_process_report_request_without_report_mode_section():
