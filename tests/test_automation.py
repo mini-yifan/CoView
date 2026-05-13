@@ -1300,6 +1300,81 @@ def test_fetch_webpage_text_rejects_expired_deadline():
         controller._fetch_webpage_text("https://example.com", deadline=expired_deadline)
 
 
+def test_build_webpage_fetch_url_candidates_adds_http_and_trimmed_slash():
+    candidates = AutomationController._build_webpage_fetch_url_candidates(
+        "https://www.miniyifan.com.cn/archives/bao-dou-dian-nao/?a=1#top"
+    )
+
+    assert candidates == [
+        "https://www.miniyifan.com.cn/archives/bao-dou-dian-nao/?a=1#top",
+        "http://www.miniyifan.com.cn/archives/bao-dou-dian-nao/?a=1#top",
+        "https://www.miniyifan.com.cn/archives/bao-dou-dian-nao?a=1#top",
+        "http://www.miniyifan.com.cn/archives/bao-dou-dian-nao?a=1#top",
+    ]
+
+
+def test_fetch_webpage_text_falls_back_to_http_and_trimmed_slash(monkeypatch):
+    controller = AutomationController(Config())
+    attempted_urls = []
+
+    def fake_download(url, timeout_seconds=15, should_stop=None, deadline=None):
+        attempted_urls.append(url)
+        if url == "http://www.miniyifan.com.cn/archives/bao-dou-dian-nao":
+            return {
+                "title": "包豆电脑",
+                "text": "正文",
+            }
+        raise RuntimeError("下载网页失败: simulated")
+
+    monkeypatch.setattr(controller, "_download_and_extract_webpage_text", fake_download)
+
+    result = controller._fetch_webpage_text("https://www.miniyifan.com.cn/archives/bao-dou-dian-nao/")
+
+    assert attempted_urls == [
+        "https://www.miniyifan.com.cn/archives/bao-dou-dian-nao/",
+        "http://www.miniyifan.com.cn/archives/bao-dou-dian-nao/",
+        "https://www.miniyifan.com.cn/archives/bao-dou-dian-nao",
+        "http://www.miniyifan.com.cn/archives/bao-dou-dian-nao",
+    ]
+    assert result["url"] == "http://www.miniyifan.com.cn/archives/bao-dou-dian-nao"
+    assert result["title"] == "包豆电脑"
+    assert result["text"] == "正文"
+
+
+def test_tool_read_current_page_uses_final_fallback_url(monkeypatch, tmp_path):
+    controller = AutomationController(Config())
+    fake_platform = FakePlatformAdapter()
+    controller._platform_adapter = fake_platform
+    controller._hide_windows = lambda: None
+    controller._show_windows = lambda: None
+
+    page_extract_dir = tmp_path / "page_extract"
+    monkeypatch.setattr("baodou_ai.core.automation.PAGE_EXTRACT_DIR", str(page_extract_dir))
+    monkeypatch.setattr(
+        controller,
+        "_extract_current_browser_url",
+        lambda max_retries=3, should_stop=None, deadline=None: "https://example.com/post/",
+    )
+    monkeypatch.setattr(
+        controller,
+        "_fetch_webpage_text",
+        lambda url, should_stop=None, deadline=None: {
+            "url": "http://example.com/post",
+            "title": "Fallback Page",
+            "text": "fallback content",
+        },
+    )
+
+    result = controller.tool_read_current_page(screen_info=None)
+
+    assert result["ok"] is True
+    assert result["url"] == "http://example.com/post"
+    assert result["page_context"]["url"] == "http://example.com/post"
+    record_files = list(page_extract_dir.glob("page_*.txt"))
+    assert len(record_files) == 1
+    assert "链接: http://example.com/post" in record_files[0].read_text(encoding="utf-8")
+
+
 def test_tool_read_current_page_chunk_stop_keeps_current_index():
     controller = AutomationController(Config())
     controller._page_reader_state = {

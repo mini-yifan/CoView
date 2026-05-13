@@ -9,6 +9,7 @@ import ssl
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from html import unescape
 from pathlib import Path
@@ -89,10 +90,11 @@ class PageReaderMixin:
             )
             self._raise_if_page_read_timed_out(deadline)
             self._raise_if_stopped(should_stop)
+            final_url = str(page.get("url") or url).strip() or url
             full_text = str(page.get("text", "") or "").strip()
             title = str(page.get("title") or "").strip()
             record_path = self._write_page_content_record(
-                url=url,
+                url=final_url,
                 title=title,
                 content=full_text,
             )
@@ -100,7 +102,7 @@ class PageReaderMixin:
             if not full_text:
                 self._page_reader_state = {}
                 page_context = {
-                    "url": url,
+                    "url": final_url,
                     "title": title,
                     "quality": "partial",
                     "content": "",
@@ -113,23 +115,23 @@ class PageReaderMixin:
                     True,
                     "已获取当前网页链接，网页解析记录已保存，但正文提取不完整",
                     "网页结构较复杂或内容依赖脚本动态渲染，未提取到足够正文内容。",
-                    fallback={"type": "read_current_page_partial", "url": url},
+                    fallback={"type": "read_current_page_partial", "url": final_url},
                 )
                 result["quality"] = "partial"
-                result["url"] = url
+                result["url"] = final_url
                 result["page_context"] = page_context
                 result["page_record_path"] = str(record_path)
                 return result
 
             self._set_page_reader_state(
-                url=url,
+                url=final_url,
                 title=title,
                 content=full_text,
                 record_path=record_path,
             )
             result = self._build_page_chunk_success_result(source_mode="extract")
             result["quality"] = "best_effort"
-            result["url"] = url
+            result["url"] = final_url
             return result
         except ToolInterrupted:
             return self._build_tool_result(False, self._INTERRUPTED_SUMMARY, self._INTERRUPTED_ERROR)
@@ -577,6 +579,38 @@ class PageReaderMixin:
     ) -> Dict[str, str]:
         self._raise_if_page_read_timed_out(deadline)
         self._raise_if_stopped(should_stop)
+        last_error: Optional[Exception] = None
+        for candidate_url in self._build_webpage_fetch_url_candidates(url):
+            self._raise_if_page_read_timed_out(deadline)
+            self._raise_if_stopped(should_stop)
+            try:
+                result = self._download_and_extract_webpage_text(
+                    candidate_url,
+                    timeout_seconds=timeout_seconds,
+                    should_stop=should_stop,
+                    deadline=deadline,
+                )
+            except TimeoutError:
+                raise
+            except Exception as exc:
+                last_error = exc
+                continue
+            result["url"] = candidate_url
+            return result
+
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("下载网页失败: URL 为空。")
+
+    def _download_and_extract_webpage_text(
+        self,
+        url: str,
+        timeout_seconds: int = 15,
+        should_stop: Optional[Callable[[], bool]] = None,
+        deadline: Optional[float] = None,
+    ) -> Dict[str, str]:
+        self._raise_if_page_read_timed_out(deadline)
+        self._raise_if_stopped(should_stop)
         headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -617,6 +651,44 @@ class PageReaderMixin:
         self._raise_if_page_read_timed_out(deadline)
         self._raise_if_stopped(should_stop)
         return result
+
+    @staticmethod
+    def _build_webpage_fetch_url_candidates(url: str) -> List[str]:
+        original = str(url or "").strip()
+        if not original:
+            return []
+
+        candidates = [original]
+        parsed = urllib.parse.urlsplit(original)
+        if parsed.scheme.lower() == "https":
+            http_url = urllib.parse.urlunsplit(("http", parsed.netloc, parsed.path, parsed.query, parsed.fragment))
+            candidates.append(http_url)
+
+        snapshot = list(candidates)
+        for candidate in snapshot:
+            parsed_candidate = urllib.parse.urlsplit(candidate)
+            path = parsed_candidate.path or ""
+            if path != "/" and path.endswith("/"):
+                trimmed_path = path.rstrip("/")
+                candidates.append(
+                    urllib.parse.urlunsplit(
+                        (
+                            parsed_candidate.scheme,
+                            parsed_candidate.netloc,
+                            trimmed_path,
+                            parsed_candidate.query,
+                            parsed_candidate.fragment,
+                        )
+                    )
+                )
+
+        deduped: List[str] = []
+        seen = set()
+        for candidate in candidates:
+            if candidate and candidate not in seen:
+                deduped.append(candidate)
+                seen.add(candidate)
+        return deduped
 
     def _bounded_page_read_socket_timeout(
         self,
