@@ -497,7 +497,10 @@ class DocumentReaderMixin:
     def _get_document_token_encoder() -> Any:
         if tiktoken is None:
             return None
-        return tiktoken.get_encoding("cl100k_base")
+        try:
+            return tiktoken.get_encoding("cl100k_base")
+        except Exception:
+            return None
 
     @classmethod
     def _count_document_tokens(cls, text: str) -> int:

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import inspect
+import queue
 import re
 import ssl
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -20,6 +23,12 @@ from .constants import (
     automation_exports,
 )
 from .runtime import ToolInterrupted
+
+
+PAGE_READ_TOTAL_TIMEOUT_SECONDS = 6.0
+PAGE_READ_CHUNK_SIZE_BYTES = 64 * 1024
+PAGE_READ_MAX_BYTES = 2 * 1024 * 1024
+PAGE_READ_SOCKET_TIMEOUT_SECONDS = 0.75
 
 
 class PageReaderMixin:
@@ -42,7 +51,9 @@ class PageReaderMixin:
             if normalized_mode == "search":
                 return self._search_current_page(query=query, top_k=top_k, should_stop=should_stop)
 
+            deadline = automation_exports().time.monotonic() + PAGE_READ_TOTAL_TIMEOUT_SECONDS
             frontmost = self.get_frontmost_app_info()
+            self._raise_if_page_read_timed_out(deadline)
             self._raise_if_stopped(should_stop)
             if not self._is_browser_frontmost_app(frontmost):
                 app_name = str(frontmost.get("app_name") or frontmost.get("identifier") or "未知应用").strip()
@@ -59,20 +70,24 @@ class PageReaderMixin:
 
             self._hide_windows()
             try:
-                url = self._call_with_optional_should_stop(
+                url = self._call_page_reader_helper(
                     self._extract_current_browser_url,
-                    max_retries=3,
                     should_stop=should_stop,
+                    deadline=deadline,
+                    max_retries=3,
                 )
             finally:
                 self._show_windows()
 
+            self._raise_if_page_read_timed_out(deadline)
             self._raise_if_stopped(should_stop)
-            page = self._call_with_optional_should_stop(
+            page = self._call_page_reader_helper_until_deadline(
                 self._fetch_webpage_text,
                 url,
                 should_stop=should_stop,
+                deadline=deadline,
             )
+            self._raise_if_page_read_timed_out(deadline)
             self._raise_if_stopped(should_stop)
             full_text = str(page.get("text", "") or "").strip()
             title = str(page.get("title") or "").strip()
@@ -118,8 +133,87 @@ class PageReaderMixin:
             return result
         except ToolInterrupted:
             return self._build_tool_result(False, self._INTERRUPTED_SUMMARY, self._INTERRUPTED_ERROR)
+        except TimeoutError as exc:
+            self._page_reader_state = {}
+            return self._build_tool_result(
+                False,
+                "读取当前网页失败",
+                str(exc),
+                fallback={"type": "read_current_page_timeout", "timeout_seconds": PAGE_READ_TOTAL_TIMEOUT_SECONDS},
+            )
         except Exception as exc:
             return self._build_tool_result(False, "读取当前网页失败", str(exc))
+
+    @staticmethod
+    def _call_page_reader_helper(
+        func: Callable,
+        *args: Any,
+        should_stop: Optional[Callable[[], bool]] = None,
+        deadline: Optional[float] = None,
+        **kwargs: Any,
+    ) -> Any:
+        call_kwargs = dict(kwargs)
+        try:
+            signature = inspect.signature(func)
+            parameters = signature.parameters
+            if should_stop is not None and "should_stop" in parameters:
+                call_kwargs["should_stop"] = should_stop
+            if deadline is not None and "deadline" in parameters:
+                call_kwargs["deadline"] = deadline
+        except (TypeError, ValueError):
+            if should_stop is not None:
+                return func(*args, **kwargs)
+        return func(*args, **call_kwargs)
+
+    @staticmethod
+    def _raise_if_page_read_timed_out(deadline: Optional[float]) -> None:
+        if deadline is not None and automation_exports().time.monotonic() >= deadline:
+            raise TimeoutError(f"读取当前网页超时，已超过 {PAGE_READ_TOTAL_TIMEOUT_SECONDS:g} 秒总时限。")
+
+    @staticmethod
+    def _remaining_page_read_seconds(deadline: Optional[float]) -> float:
+        if deadline is None:
+            return PAGE_READ_TOTAL_TIMEOUT_SECONDS
+        return max(0.0, deadline - automation_exports().time.monotonic())
+
+    def _call_page_reader_helper_until_deadline(
+        self,
+        func: Callable,
+        *args: Any,
+        should_stop: Optional[Callable[[], bool]] = None,
+        deadline: Optional[float] = None,
+        **kwargs: Any,
+    ) -> Any:
+        remaining = self._remaining_page_read_seconds(deadline)
+        if remaining <= 0:
+            self._raise_if_page_read_timed_out(deadline)
+
+        result_queue: queue.Queue[Tuple[bool, Any]] = queue.Queue(maxsize=1)
+
+        def target() -> None:
+            try:
+                result = self._call_page_reader_helper(
+                    func,
+                    *args,
+                    should_stop=should_stop,
+                    deadline=deadline,
+                    **kwargs,
+                )
+            except BaseException as exc:
+                result_queue.put((False, exc))
+            else:
+                result_queue.put((True, result))
+
+        worker = threading.Thread(target=target, name="page-reader-fetch", daemon=True)
+        worker.start()
+        worker.join(timeout=remaining)
+        if worker.is_alive():
+            raise TimeoutError(f"读取当前网页超时，已超过 {PAGE_READ_TOTAL_TIMEOUT_SECONDS:g} 秒总时限。")
+
+        ok, payload = result_queue.get_nowait()
+        if ok:
+            return payload
+        raise payload
 
     @staticmethod
     def _is_browser_frontmost_app(app_info: Optional[Dict[str, Any]]) -> bool:
@@ -159,12 +253,14 @@ class PageReaderMixin:
         self,
         max_retries: int = 3,
         should_stop: Optional[Callable[[], bool]] = None,
+        deadline: Optional[float] = None,
     ) -> str:
         hotkey_modifier = self._get_hotkey_modifier()
 
         has_backup, original_clipboard = self._backup_clipboard_text()
         try:
             for attempt in range(max(max_retries, 1)):
+                self._raise_if_page_read_timed_out(deadline)
                 self._raise_if_stopped(should_stop)
                 before_copy = str(automation_exports().pyperclip.paste() or "").strip()
 
@@ -178,6 +274,7 @@ class PageReaderMixin:
                     previous_content=before_copy,
                     timeout_seconds=0.7,
                     should_stop=should_stop,
+                    deadline=deadline,
                 )
                 self._restore_browser_focus_after_copy()
                 if url:
@@ -234,17 +331,21 @@ class PageReaderMixin:
         previous_content: str,
         timeout_seconds: float = 0.7,
         should_stop: Optional[Callable[[], bool]] = None,
+        deadline: Optional[float] = None,
     ) -> str:
-        deadline = automation_exports().time.monotonic() + max(timeout_seconds, 0.1)
+        local_deadline = automation_exports().time.monotonic() + max(timeout_seconds, 0.1)
+        if deadline is not None:
+            local_deadline = min(local_deadline, deadline)
         previous = str(previous_content or "").strip()
-        while automation_exports().time.monotonic() < deadline:
+        while automation_exports().time.monotonic() < local_deadline:
+            self._raise_if_page_read_timed_out(deadline)
             self._raise_if_stopped(should_stop)
             current = str(automation_exports().pyperclip.paste() or "").strip()
             if current and re.match(r"^https?://", current):
                 if current != previous:
                     return current
                 # 内容没有变化时再多等一轮，兼容“原剪贴板本来就是 URL”的情况。
-                if (deadline - automation_exports().time.monotonic()) < 0.2:
+                if (local_deadline - automation_exports().time.monotonic()) < 0.2:
                     return current
             if not self._sleep_interruptibly(0.05, should_stop=should_stop):
                 raise ToolInterrupted(self._INTERRUPTED_ERROR)
@@ -472,7 +573,9 @@ class PageReaderMixin:
         url: str,
         timeout_seconds: int = 15,
         should_stop: Optional[Callable[[], bool]] = None,
+        deadline: Optional[float] = None,
     ) -> Dict[str, str]:
+        self._raise_if_page_read_timed_out(deadline)
         self._raise_if_stopped(should_stop)
         headers = {
             "User-Agent": (
@@ -488,21 +591,65 @@ class PageReaderMixin:
         )
 
         try:
-            with opener.open(request, timeout=timeout_seconds) as response:
-                html_bytes = response.read()
+            open_timeout = self._bounded_page_read_socket_timeout(timeout_seconds, deadline)
+            with opener.open(request, timeout=open_timeout) as response:
+                html_bytes = self._read_webpage_response_bytes(
+                    response,
+                    should_stop=should_stop,
+                    deadline=deadline,
+                )
                 content_type = str(response.headers.get("Content-Type", "") or "")
+            self._raise_if_page_read_timed_out(deadline)
             self._raise_if_stopped(should_stop)
         except urllib.error.URLError as exc:
             reason = getattr(exc, "reason", exc)
             raise RuntimeError(f"下载网页失败: {reason}") from exc
+        except TimeoutError:
+            raise
         except Exception as exc:
             raise RuntimeError(f"下载网页失败: {exc}") from exc
 
+        self._raise_if_page_read_timed_out(deadline)
         html_text = self._decode_webpage_bytes(html_bytes, content_type)
+        self._raise_if_page_read_timed_out(deadline)
         self._raise_if_stopped(should_stop)
         result = self._extract_title_and_text_from_html(html_text)
+        self._raise_if_page_read_timed_out(deadline)
         self._raise_if_stopped(should_stop)
         return result
+
+    def _bounded_page_read_socket_timeout(
+        self,
+        timeout_seconds: int,
+        deadline: Optional[float],
+    ) -> float:
+        remaining = self._remaining_page_read_seconds(deadline)
+        if remaining <= 0:
+            self._raise_if_page_read_timed_out(deadline)
+        configured = max(float(timeout_seconds or PAGE_READ_SOCKET_TIMEOUT_SECONDS), 0.1)
+        return max(0.1, min(configured, PAGE_READ_SOCKET_TIMEOUT_SECONDS, remaining))
+
+    def _read_webpage_response_bytes(
+        self,
+        response: Any,
+        should_stop: Optional[Callable[[], bool]] = None,
+        deadline: Optional[float] = None,
+    ) -> bytes:
+        chunks: List[bytes] = []
+        total_bytes = 0
+        while True:
+            self._raise_if_page_read_timed_out(deadline)
+            self._raise_if_stopped(should_stop)
+            chunk = response.read(PAGE_READ_CHUNK_SIZE_BYTES)
+            self._raise_if_page_read_timed_out(deadline)
+            self._raise_if_stopped(should_stop)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total_bytes += len(chunk)
+            if total_bytes > PAGE_READ_MAX_BYTES:
+                raise RuntimeError(f"网页内容过大，已超过 {PAGE_READ_MAX_BYTES // (1024 * 1024)}MB 读取上限。")
+        return b"".join(chunks)
 
     @staticmethod
     def _decode_webpage_bytes(html_bytes: bytes, content_type: str) -> str:

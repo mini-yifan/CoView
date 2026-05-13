@@ -1,7 +1,9 @@
 from types import SimpleNamespace
+import time
 
 import pytest
 
+import baodou_ai.core.automation_tools.page_reader as page_reader_module
 from baodou_ai.agent.tool_executor import ToolExecutor
 from baodou_ai.core.automation import AutomationController
 from baodou_ai.core.config import Config
@@ -1238,6 +1240,64 @@ def test_tool_read_current_page_stops_before_fetch(monkeypatch):
         "error": "用户已停止当前任务",
     }
     assert fetch_called == []
+
+
+def test_tool_read_current_page_has_total_timeout(monkeypatch):
+    controller = AutomationController(Config())
+    fake_platform = FakePlatformAdapter()
+    controller._platform_adapter = fake_platform
+    controller._hide_windows = lambda: None
+    controller._show_windows = lambda: None
+
+    monkeypatch.setattr(page_reader_module, "PAGE_READ_TOTAL_TIMEOUT_SECONDS", 0.01)
+    monkeypatch.setattr(
+        controller,
+        "_extract_current_browser_url",
+        lambda max_retries=3: time.sleep(0.02) or "https://example.com",
+    )
+
+    result = controller.tool_read_current_page(screen_info=None)
+
+    assert result["ok"] is False
+    assert result["summary"] == "读取当前网页失败"
+    assert "超时" in str(result["error"])
+    assert result.get("fallback", {}).get("type") == "read_current_page_timeout"
+
+
+def test_tool_read_current_page_times_out_blocking_fetch(monkeypatch):
+    controller = AutomationController(Config())
+    fake_platform = FakePlatformAdapter()
+    controller._platform_adapter = fake_platform
+    controller._hide_windows = lambda: None
+    controller._show_windows = lambda: None
+
+    monkeypatch.setattr(page_reader_module, "PAGE_READ_TOTAL_TIMEOUT_SECONDS", 0.02)
+    monkeypatch.setattr(
+        controller,
+        "_extract_current_browser_url",
+        lambda max_retries=3: "https://example.com",
+    )
+    monkeypatch.setattr(
+        controller,
+        "_fetch_webpage_text",
+        lambda url: time.sleep(0.2) or {"title": "late", "text": "late"},
+    )
+
+    started_at = time.perf_counter()
+    result = controller.tool_read_current_page(screen_info=None)
+    elapsed = time.perf_counter() - started_at
+
+    assert result["ok"] is False
+    assert result.get("fallback", {}).get("type") == "read_current_page_timeout"
+    assert elapsed < 0.15
+
+
+def test_fetch_webpage_text_rejects_expired_deadline():
+    controller = AutomationController(Config())
+    expired_deadline = page_reader_module.automation_exports().time.monotonic() - 0.01
+
+    with pytest.raises(TimeoutError):
+        controller._fetch_webpage_text("https://example.com", deadline=expired_deadline)
 
 
 def test_tool_read_current_page_chunk_stop_keeps_current_index():
