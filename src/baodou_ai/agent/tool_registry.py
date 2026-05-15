@@ -243,7 +243,7 @@ def _normalize_open_in_browser_args(args: Dict[str, Any]) -> ToolArgs:
     has_url = "url" in args and args.get("url") is not None
     has_query = "query" in args and args.get("query") is not None
 
-    if has_url == has_query:
+    if has_url and has_query:
         raise ValueError("open_in_browser 必须且只能提供 url 或 query 其中一个")
 
     if has_url:
@@ -251,9 +251,12 @@ def _normalize_open_in_browser_args(args: Dict[str, Any]) -> ToolArgs:
             "url": _normalize_text(args.get("url"), "url"),
         }
 
-    return {
-        "query": _normalize_text(args.get("query"), "query"),
-    }
+    if has_query:
+        return {
+            "query": _normalize_text(args.get("query"), "query"),
+        }
+
+    return {}
 
 
 PATH_BLACKLIST = (
@@ -711,8 +714,8 @@ TOOL_DEFINITIONS: Dict[str, ToolDefinition] = {
     ),
     "open_in_browser": ToolDefinition(
         name="open_in_browser",
-        description="Open a URL or search text in the current default browser. Provide exactly one of `url` or `query`.",
-        args_prompt='{"url": "https://www.bilibili.com"} or {"query": "Luoxiang Criminal Law bilibili"}',
+        description="Open the current default browser, a URL, or search text. Omit args to launch the browser itself; otherwise provide exactly one of `url` or `query`.",
+        args_prompt='{} or {"url": "https://www.bilibili.com"} or {"query": "Luoxiang Criminal Law bilibili"}',
         validator=_normalize_open_in_browser_args,
     ),
     "open_in_finder": ToolDefinition(

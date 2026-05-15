@@ -345,11 +345,13 @@ class OpenInBrowserArgs(SchemaModel):
         args = dict(data or {})
         has_url = "url" in args and args.get("url") is not None
         has_query = "query" in args and args.get("query") is not None
-        if has_url == has_query:
+        if has_url and has_query:
             raise ValueError("open_in_browser 必须且只能提供 url 或 query 其中一个")
         if has_url:
             return {"url": _normalize_text(args.get("url"), "url")}
-        return {"query": _normalize_text(args.get("query"), "query")}
+        if has_query:
+            return {"query": _normalize_text(args.get("query"), "query")}
+        return {}
 
 
 class OpenInFinderArgs(SchemaModel):

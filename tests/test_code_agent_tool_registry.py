@@ -183,6 +183,10 @@ def test_pydantic_tool_args_reject_key_boundary_cases():
         normalize_tool_args("long_press", {"screen_index": 0, "position": [500, 500], "duration_seconds": 11})
 
 
+def test_open_in_browser_accepts_empty_args_to_launch_browser():
+    assert normalize_tool_args("open_in_browser", {}) == {}
+
+
 def test_long_press_tool_args_default_and_custom_duration():
     assert normalize_tool_args("long_press", {"screen_index": 0, "position": [500, 500]}) == {
         "screen_index": 0,

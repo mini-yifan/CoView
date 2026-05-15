@@ -1019,6 +1019,25 @@ def test_tool_open_in_browser_uses_platform_adapter(monkeypatch):
     assert fake_platform.calls == [("open_in_browser", None, "罗翔说刑法 bilibili")]
 
 
+def test_tool_open_in_browser_allows_empty_args(monkeypatch):
+    controller = AutomationController(Config())
+    fake_platform = FakePlatformAdapter()
+    controller._platform_adapter = fake_platform
+    controller.wait_for_stability = lambda screen_info=None: SimpleNamespace(
+        stable=True,
+        elapsed_ms=10.0,
+        probe_count=1,
+        last_change_ratio=0.0,
+    )
+    controller._hide_windows = lambda: None
+    controller._show_windows = lambda: None
+
+    result = controller.tool_open_in_browser(screen_info=None)
+
+    assert result == {"ok": True, "summary": "已在默认浏览器中打开内容", "error": None}
+    assert fake_platform.calls == [("open_in_browser", None, None)]
+
+
 def test_tool_open_in_finder_uses_platform_adapter(monkeypatch):
     controller = AutomationController(Config())
     fake_platform = FakePlatformAdapter()

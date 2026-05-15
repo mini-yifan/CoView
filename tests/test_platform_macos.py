@@ -480,6 +480,29 @@ def test_macos_open_in_browser_uses_launchservices_preferences_when_coreservices
     assert recorded["cmd"] == ["open", result["target_url"]]
 
 
+def test_macos_open_in_browser_without_target_launches_default_browser(monkeypatch):
+    adapter = MacOSAdapter.__new__(MacOSAdapter)
+    recorded = {}
+
+    monkeypatch.setattr(
+        adapter,
+        "get_default_browser_info",
+        lambda: {"identifier": "com.google.chrome", "app_path": "/Applications/Google Chrome.app"},
+    )
+
+    def fake_run(cmd, check):
+        recorded["cmd"] = cmd
+        recorded["check"] = check
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr("baodou_ai.platform.macos.subprocess.run", fake_run)
+
+    result = adapter.open_in_browser()
+
+    assert result["target_url"] == ""
+    assert recorded == {"cmd": ["open", "-b", "com.google.chrome"], "check": True}
+
+
 def test_macos_list_installed_app_names_uses_raw_scanned_names(monkeypatch):
     adapter = MacOSAdapter()
     monkeypatch.setattr(

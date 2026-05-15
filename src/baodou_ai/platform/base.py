@@ -429,6 +429,7 @@ class PlatformAdapter(ABC):
         Args:
             url: 直接打开的网址
             query: 需要搜索的文本
+            不提供 url/query 时只启动默认浏览器
 
         Returns:
             最小结果对象，至少包含:

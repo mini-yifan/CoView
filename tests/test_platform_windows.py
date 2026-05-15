@@ -552,6 +552,23 @@ def test_windows_open_in_browser_hides_cmd_start_fallback(monkeypatch):
     assert calls[0][1]["creationflags"] == windows_platform.subprocess.CREATE_NO_WINDOW
 
 
+def test_windows_open_in_browser_without_target_launches_default_browser(monkeypatch):
+    adapter = WindowsAdapter.__new__(WindowsAdapter)
+    calls = []
+
+    monkeypatch.setattr(
+        adapter,
+        "get_default_browser_info",
+        lambda: {"app_path": r"C:\Program Files\Browser\browser.exe"},
+    )
+    monkeypatch.setattr(windows_platform.os, "startfile", lambda target: calls.append(target), raising=False)
+
+    result = adapter.open_in_browser()
+
+    assert result["target_url"] == ""
+    assert calls == [r"C:\Program Files\Browser\browser.exe"]
+
+
 def test_windows_build_shell_operation_path_uses_double_null_suffix(tmp_path):
     path = tmp_path / "sample.txt"
 

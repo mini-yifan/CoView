@@ -862,7 +862,7 @@ class MacOSAdapter(PlatformAdapter):
     def open_in_browser(
         self, url: Optional[str] = None, query: Optional[str] = None
     ) -> Dict[str, Any]:
-        if bool(url) == bool(query):
+        if bool(url) and bool(query):
             raise ValueError("open_in_browser 必须且只能提供 url 或 query 其中一个")
 
         browser_info = self.get_default_browser_info()
@@ -873,7 +873,16 @@ class MacOSAdapter(PlatformAdapter):
                 bool(browser_info.get("is_chrome_family")),
             )
         if not target_url:
-            raise ValueError("目标 URL 不能为空")
+            bundle_id = str(browser_info.get("identifier") or "").strip()
+            if bundle_id:
+                subprocess.run(["open", "-b", bundle_id], check=True)
+            else:
+                target_url = str(browser_info.get("app_path") or "about:blank").strip()
+                subprocess.run(["open", target_url], check=True)
+            return {
+                "browser": browser_info,
+                "target_url": "",
+            }
 
         subprocess.run(["open", target_url], check=True)
         return {

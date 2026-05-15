@@ -1309,7 +1309,7 @@ Write-Output '{_POWERSHELL_NONE_SENTINEL}'
     def open_in_browser(
         self, url: Optional[str] = None, query: Optional[str] = None
     ) -> Dict[str, Any]:
-        if bool(url) == bool(query):
+        if bool(url) and bool(query):
             raise ValueError("open_in_browser 必须且只能提供 url 或 query 其中一个")
 
         browser_info = self.get_default_browser_info()
@@ -1319,14 +1319,15 @@ Write-Output '{_POWERSHELL_NONE_SENTINEL}'
                 str(query).strip(),
                 bool(browser_info.get("is_chrome_family")),
             )
+        launch_target = target_url
         if not target_url:
-            raise ValueError("目标 URL 不能为空")
+            launch_target = str(browser_info.get("app_path") or "about:blank").strip()
 
         if hasattr(os, "startfile"):
-            os.startfile(target_url)
+            os.startfile(launch_target)
         else:
             subprocess.Popen(
-                ["cmd", "/c", "start", "", target_url],
+                ["cmd", "/c", "start", "", launch_target],
                 **_hidden_subprocess_kwargs(),
             )
 
