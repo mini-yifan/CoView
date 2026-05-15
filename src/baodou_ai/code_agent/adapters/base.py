@@ -60,6 +60,27 @@ class BaseCLIAdapter:
         "/usr/local/bin",
     )
 
+    @staticmethod
+    def _hidden_subprocess_kwargs() -> Dict[str, Any]:
+        if os.name != "nt":
+            return {}
+
+        kwargs: Dict[str, Any] = {}
+        create_no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        if create_no_window:
+            kwargs["creationflags"] = create_no_window
+
+        startupinfo_cls = getattr(subprocess, "STARTUPINFO", None)
+        startf_use_show_window = getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
+        sw_hide = getattr(subprocess, "SW_HIDE", 0)
+        if startupinfo_cls is not None and startf_use_show_window:
+            startupinfo = startupinfo_cls()
+            startupinfo.dwFlags |= startf_use_show_window
+            startupinfo.wShowWindow = sw_hide
+            kwargs["startupinfo"] = startupinfo
+
+        return kwargs
+
     def run(
         self,
         request: CodeAgentRequest,
@@ -105,6 +126,7 @@ class BaseCLIAdapter:
             bufsize=1,
             start_new_session=(os.name == "posix"),
             env=process_env,
+            **self._hidden_subprocess_kwargs(),
         )
         callbacks.on_pid(int(process.pid))
 

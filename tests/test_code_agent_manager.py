@@ -1,4 +1,5 @@
 import json
+import io
 import os
 import threading
 import time
@@ -7,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from baodou_ai.code_agent.adapters.codebuddy import CodeBuddyAdapter
+from baodou_ai.code_agent.adapters import base as base_adapter
 from baodou_ai.code_agent.adapters.codex import CodexAdapter
 from baodou_ai.code_agent.adapters.claude_code import ClaudeCodeAdapter
 from baodou_ai.code_agent.adapters.kimi import KimiAdapter
@@ -622,6 +624,70 @@ def test_cli_adapter_resolves_commands_from_common_user_bin_dirs(tmp_path, monke
 
     assert str(bin_dir) in env["PATH"].split(os.pathsep)
     assert KimiAdapter._resolve_executable("kimi", env=env) == str(executable)
+
+
+def test_cli_adapter_hides_windows_subprocess_window(monkeypatch):
+    adapter = KimiAdapter()
+    popen_calls = []
+
+    class FakeStartupInfo:
+        def __init__(self):
+            self.dwFlags = 0
+            self.wShowWindow = None
+
+    class FakeProcess:
+        pid = 1234
+
+        def __init__(self):
+            self.stdout = io.StringIO('{"response":"done"}\n')
+            self.stderr = io.StringIO("")
+
+        def poll(self):
+            return 0
+
+    def fake_popen(command, **kwargs):
+        popen_calls.append((command, kwargs))
+        return FakeProcess()
+
+    monkeypatch.setattr(base_adapter.os, "name", "nt")
+    monkeypatch.setattr(base_adapter.subprocess, "CREATE_NO_WINDOW", 0x08000000, raising=False)
+    monkeypatch.setattr(base_adapter.subprocess, "STARTUPINFO", FakeStartupInfo, raising=False)
+    monkeypatch.setattr(base_adapter.subprocess, "STARTF_USESHOWWINDOW", 1, raising=False)
+    monkeypatch.setattr(base_adapter.subprocess, "SW_HIDE", 0, raising=False)
+    monkeypatch.setattr(KimiAdapter, "_build_env", classmethod(lambda cls, provider_config: {}))
+    monkeypatch.setattr(
+        KimiAdapter,
+        "_resolve_executable",
+        classmethod(lambda cls, command, env=None: "kimi.exe"),
+    )
+    monkeypatch.setattr(base_adapter.subprocess, "Popen", fake_popen)
+
+    request = CodeAgentRequest(
+        job_id="code-job-0001",
+        provider="kimi",
+        title="fix",
+        task="Fix the bug",
+        workspace_path="",
+        timeout_seconds=120,
+    )
+
+    result = adapter.run(
+        request,
+        callbacks=SimpleNamespace(on_log=lambda message: None, on_pid=lambda pid: None),
+        should_stop=lambda: False,
+        provider_config={},
+    )
+
+    assert result.ok is True
+    assert popen_calls[0][1]["creationflags"] == 0x08000000
+    assert popen_calls[0][1]["startupinfo"].dwFlags & 1
+    assert popen_calls[0][1]["startupinfo"].wShowWindow == 0
+
+
+def test_cli_adapter_does_not_add_hidden_subprocess_kwargs_on_non_windows(monkeypatch):
+    monkeypatch.setattr(base_adapter.os, "name", "posix")
+
+    assert KimiAdapter._hidden_subprocess_kwargs() == {}
 
 
 def test_claude_adapter_extracts_result_from_json_output():

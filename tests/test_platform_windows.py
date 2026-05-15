@@ -12,6 +12,7 @@ from baodou_ai.gui.floating.windows_native import (
     WS_EX_TRANSPARENT,
     WindowsOverlayHelper,
 )
+from baodou_ai.platform import windows as windows_platform
 from baodou_ai.platform.windows import WindowsAdapter
 
 
@@ -343,6 +344,29 @@ def test_windows_get_active_document_path_returns_none_for_unsupported_app():
     assert adapter.get_active_document_path("Notepad") is None
 
 
+def test_windows_run_powershell_hides_subprocess_window(monkeypatch):
+    adapter = WindowsAdapter.__new__(WindowsAdapter)
+    calls = []
+
+    class Completed:
+        returncode = 0
+        stdout = "ok\n"
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        return Completed()
+
+    monkeypatch.setattr(windows_platform.subprocess, "run", fake_run)
+
+    result = adapter._run_powershell("Write-Output ok")
+
+    assert result == "ok"
+    assert calls[0][0][0] == "powershell"
+    assert calls[0][1]["creationflags"] == windows_platform.subprocess.CREATE_NO_WINDOW
+    assert calls[0][1]["startupinfo"].dwFlags & windows_platform.subprocess.STARTF_USESHOWWINDOW
+    assert calls[0][1]["startupinfo"].wShowWindow == windows_platform.subprocess.SW_HIDE
+
+
 def test_windows_get_active_document_path_resolves_explorer_folder_via_powershell(monkeypatch):
     adapter = WindowsAdapter.__new__(WindowsAdapter)
     scripts = []
@@ -488,6 +512,44 @@ def test_windows_launch_app_falls_back_to_startfile_when_activation_fails(monkey
 
     assert result["matched"] is True
     assert startfile_calls == [r"C:\Program Files\Tencent\QQ\QQ.exe"]
+
+
+def test_windows_open_in_finder_hides_explorer_fallback_for_file(tmp_path, monkeypatch):
+    target = tmp_path / "sample.txt"
+    target.write_text("data", encoding="utf-8")
+    adapter = WindowsAdapter.__new__(WindowsAdapter)
+    calls = []
+
+    monkeypatch.setattr(
+        windows_platform.subprocess,
+        "Popen",
+        lambda command, **kwargs: calls.append((command, kwargs)),
+    )
+
+    result = adapter.open_in_finder(str(target))
+
+    assert result["revealed_file"] == str(target.resolve())
+    assert calls[0][0] == ["explorer.exe", "/select,", str(target.resolve())]
+    assert calls[0][1]["creationflags"] == windows_platform.subprocess.CREATE_NO_WINDOW
+
+
+def test_windows_open_in_browser_hides_cmd_start_fallback(monkeypatch):
+    adapter = WindowsAdapter.__new__(WindowsAdapter)
+    calls = []
+
+    monkeypatch.setattr(adapter, "get_default_browser_info", lambda: {"is_chrome_family": True})
+    monkeypatch.delattr(windows_platform.os, "startfile", raising=False)
+    monkeypatch.setattr(
+        windows_platform.subprocess,
+        "Popen",
+        lambda command, **kwargs: calls.append((command, kwargs)),
+    )
+
+    result = adapter.open_in_browser(url="https://example.com")
+
+    assert result["target_url"] == "https://example.com"
+    assert calls[0][0] == ["cmd", "/c", "start", "", "https://example.com"]
+    assert calls[0][1]["creationflags"] == windows_platform.subprocess.CREATE_NO_WINDOW
 
 
 def test_windows_build_shell_operation_path_uses_double_null_suffix(tmp_path):

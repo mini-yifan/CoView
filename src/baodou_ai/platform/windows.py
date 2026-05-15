@@ -47,6 +47,27 @@ _POWERSHELL_NONE_SENTINEL = "__COVIEW_AI_NONE__"
 _POWERSHELL_EMPTY_SENTINEL = "__COVIEW_AI_EMPTY__"
 
 
+def _hidden_subprocess_kwargs() -> Dict[str, Any]:
+    if os.name != "nt":
+        return {}
+
+    kwargs: Dict[str, Any] = {}
+    create_no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    if create_no_window:
+        kwargs["creationflags"] = create_no_window
+
+    startupinfo_cls = getattr(subprocess, "STARTUPINFO", None)
+    startf_use_show_window = getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
+    sw_hide = getattr(subprocess, "SW_HIDE", 0)
+    if startupinfo_cls is not None and startf_use_show_window:
+        startupinfo = startupinfo_cls()
+        startupinfo.dwFlags |= startf_use_show_window
+        startupinfo.wShowWindow = sw_hide
+        kwargs["startupinfo"] = startupinfo
+
+    return kwargs
+
+
 class _SHFILEOPSTRUCTW(ctypes.Structure):
     _fields_ = [
         ("hwnd", wintypes.HWND),
@@ -741,7 +762,7 @@ class WindowsAdapter(PlatformAdapter):
         if hasattr(os, "startfile"):
             os.startfile(app_path)
         else:
-            subprocess.Popen([app_path])
+            subprocess.Popen([app_path], **_hidden_subprocess_kwargs())
         return match
 
     def open_app_launcher(self) -> Dict[str, Any]:
@@ -756,7 +777,7 @@ class WindowsAdapter(PlatformAdapter):
             if hasattr(os, "startfile"):
                 os.startfile(target_path)
             else:
-                subprocess.Popen(["explorer.exe", target_path])
+                subprocess.Popen(["explorer.exe", target_path], **_hidden_subprocess_kwargs())
             return {
                 "target_path": target_path,
                 "revealed_file": None,
@@ -771,7 +792,10 @@ class WindowsAdapter(PlatformAdapter):
             }
 
         if resolved.is_file():
-            subprocess.Popen(["explorer.exe", "/select,", str(resolved)])
+            subprocess.Popen(
+                ["explorer.exe", "/select,", str(resolved)],
+                **_hidden_subprocess_kwargs(),
+            )
             return {
                 "target_path": str(resolved.parent),
                 "revealed_file": str(resolved),
@@ -781,7 +805,7 @@ class WindowsAdapter(PlatformAdapter):
         if hasattr(os, "startfile"):
             os.startfile(target_path)
         else:
-            subprocess.Popen(["explorer.exe", target_path])
+            subprocess.Popen(["explorer.exe", target_path], **_hidden_subprocess_kwargs())
         return {
             "target_path": target_path,
             "revealed_file": None,
@@ -881,6 +905,7 @@ class WindowsAdapter(PlatformAdapter):
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                **_hidden_subprocess_kwargs(),
             )
         except Exception:
             return None
@@ -1300,7 +1325,10 @@ Write-Output '{_POWERSHELL_NONE_SENTINEL}'
         if hasattr(os, "startfile"):
             os.startfile(target_url)
         else:
-            subprocess.Popen(["cmd", "/c", "start", "", target_url])
+            subprocess.Popen(
+                ["cmd", "/c", "start", "", target_url],
+                **_hidden_subprocess_kwargs(),
+            )
 
         return {
             "browser": browser_info,
