@@ -154,6 +154,39 @@ class VoiceInteractionController(QObject):
         "暂停",
         "继续",
     }
+    _TTS_ECHO_SPLIT_RE = re.compile(r"[。！？!?；;\n\r]+")
+    _EXPLICIT_INTERRUPT_KEYWORDS_CN = (
+        "停下",
+        "停止",
+        "暂停",
+        "别说",
+        "不要说",
+        "别播",
+        "不要播",
+        "别读",
+        "不要读",
+        "别执行",
+        "不要执行",
+        "取消",
+        "打住",
+        "闭嘴",
+        "安静",
+    )
+    _EXPLICIT_INTERRUPT_KEYWORDS_EN = (
+        "stop",
+        "cancel",
+        "pause",
+        "mute",
+        "quiet",
+        "shut up",
+        "don't speak",
+        "do not speak",
+        "stop talking",
+        "stop speaking",
+        "stop reading",
+        "stop the task",
+        "cancel the task",
+    )
 
     transcript_received = pyqtSignal(str)
     level_received = pyqtSignal(float, bool)
@@ -261,7 +294,11 @@ class VoiceInteractionController(QObject):
         if self._can_handle_idle_dismiss_command() and self._is_idle_dismiss_command(transcript):
             self._delegate.handle_voice_dismiss_command()
             return
-        if not self._delegate.is_task_active() and not self._delegate.is_waiting_for_tts():
+        if (
+            not self._delegate.is_task_active()
+            and not self._delegate.is_waiting_for_tts()
+            and not self._is_in_tts_echo_guard()
+        ):
             if not self._passes_idle_submit_gate(transcript):
                 self._log(f"[VOICE] ignore idle transcript: {transcript}\n", "info")
                 self._apply_voice_state("listening", self._latest_level, "")
@@ -350,13 +387,13 @@ class VoiceInteractionController(QObject):
 
     def _build_intent_context(self, transcript: str) -> VoiceIntentContext:
         task_active = bool(self._delegate.is_task_active())
-        tts_playing = bool(self._delegate.is_waiting_for_tts())
+        tts_playing = bool(self._delegate.is_waiting_for_tts() or self._is_in_tts_echo_guard())
         return VoiceIntentContext(
             transcript=transcript,
             agent_status=str(self._delegate.current_status_key()),
             current_task=str(self._delegate.current_task_text()),
             tts_playing=tts_playing,
-            tts_text=self._delegate.current_tts_text(),
+            tts_text=self._combined_recent_tts_text(),
             interaction_phase=self._describe_interaction_phase(task_active, tts_playing),
         )
 
@@ -438,11 +475,97 @@ class VoiceInteractionController(QObject):
     def _should_ignore_tts_echo(self, transcript: str) -> bool:
         if not bool(self._config.get("voice_interaction_config.ignore_tts_echo", True)):
             return False
-        tts_text = str(self._delegate.current_tts_text() or "").strip()
-        if not tts_text:
+        if self._is_explicit_interrupt_transcript(transcript):
             return False
-        ratio = difflib.SequenceMatcher(None, transcript.strip(), tts_text).ratio()
-        return ratio >= 0.72
+        candidates = self._tts_echo_candidates()
+        if not candidates:
+            return False
+        normalized_transcript = self._normalize_transcript_for_screening(transcript)
+        if not normalized_transcript:
+            return False
+        text_threshold = float(
+            self._config.get("voice_interaction_config.tts_echo_text_similarity_threshold", 0.72)
+            or 0.72
+        )
+        fragment_threshold = float(
+            self._config.get("voice_interaction_config.tts_echo_fragment_similarity_threshold", 0.82)
+            or 0.82
+        )
+        for candidate in candidates:
+            normalized_candidate = self._normalize_transcript_for_screening(candidate)
+            if not normalized_candidate:
+                continue
+            if normalized_transcript in normalized_candidate or normalized_candidate in normalized_transcript:
+                return True
+            ratio = difflib.SequenceMatcher(None, normalized_transcript, normalized_candidate).ratio()
+            if ratio >= text_threshold:
+                return True
+            if self._character_overlap_ratio(normalized_transcript, normalized_candidate) >= text_threshold:
+                return True
+            for fragment in self._split_tts_echo_fragments(candidate):
+                normalized_fragment = self._normalize_transcript_for_screening(fragment)
+                if not normalized_fragment:
+                    continue
+                if normalized_transcript in normalized_fragment or normalized_fragment in normalized_transcript:
+                    return True
+                fragment_ratio = difflib.SequenceMatcher(
+                    None, normalized_transcript, normalized_fragment
+                ).ratio()
+                if fragment_ratio >= fragment_threshold:
+                    return True
+        return False
+
+    def _is_in_tts_echo_guard(self) -> bool:
+        checker = getattr(self._delegate, "is_in_tts_echo_guard", None)
+        if not callable(checker):
+            return False
+        try:
+            return bool(checker())
+        except Exception:
+            return False
+
+    def _combined_recent_tts_text(self) -> str:
+        texts = self._tts_echo_candidates()
+        return "\n".join(texts)
+
+    def _tts_echo_candidates(self) -> tuple[str, ...]:
+        window = float(
+            self._config.get("voice_interaction_config.tts_echo_history_seconds", 20) or 20
+        )
+        candidates: list[str] = []
+        current = str(self._delegate.current_tts_text() or "").strip()
+        if current:
+            candidates.append(current)
+        try:
+            recent = self._delegate.recent_tts_texts(window)
+        except Exception:
+            recent = ()
+        for text in recent:
+            normalized = str(text or "").strip()
+            if normalized and normalized not in candidates:
+                candidates.append(normalized)
+        return tuple(candidates)
+
+    @classmethod
+    def _split_tts_echo_fragments(cls, text: str) -> tuple[str, ...]:
+        fragments = [fragment.strip() for fragment in cls._TTS_ECHO_SPLIT_RE.split(str(text or ""))]
+        return tuple(fragment for fragment in fragments if len(fragment) >= 2)
+
+    @staticmethod
+    def _character_overlap_ratio(left: str, right: str) -> float:
+        if not left or not right:
+            return 0.0
+        shorter, longer = (left, right) if len(left) <= len(right) else (right, left)
+        matches = sum(1 for char in shorter if char in longer)
+        return matches / max(1, len(shorter))
+
+    @classmethod
+    def _is_explicit_interrupt_transcript(cls, transcript: str) -> bool:
+        normalized = cls._normalize_transcript_for_screening(transcript)
+        if any(keyword in normalized for keyword in cls._EXPLICIT_INTERRUPT_KEYWORDS_CN):
+            return True
+        english_phrase = " ".join(re.findall(r"[a-zA-Z']+", str(transcript or "").lower()))
+        return any(keyword in english_phrase for keyword in cls._EXPLICIT_INTERRUPT_KEYWORDS_EN)
 
     @staticmethod
     def _normalize_level(rms: float) -> float:
@@ -471,6 +594,12 @@ class VoiceInteractionDelegate(Protocol):
         ...
 
     def current_tts_text(self) -> str:
+        ...
+
+    def recent_tts_texts(self, window_seconds: float) -> tuple[str, ...]:
+        ...
+
+    def is_in_tts_echo_guard(self) -> bool:
         ...
 
     def submit_voice_task(self, text: str) -> None:

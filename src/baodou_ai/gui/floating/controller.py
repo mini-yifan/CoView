@@ -899,6 +899,22 @@ class FloatingController:
     def current_tts_text(self) -> str:
         return str(getattr(self._tts, "current_text", "") or "")
 
+    def recent_tts_texts(self, window_seconds: float) -> tuple[str, ...]:
+        recent = getattr(self._tts, "recent_texts", None)
+        if callable(recent):
+            return tuple(str(text or "") for text in recent(window_seconds))
+        text = self.current_tts_text()
+        return (text,) if text else ()
+
+    def is_in_tts_echo_guard(self) -> bool:
+        checker = getattr(self._tts, "is_in_echo_guard", None)
+        if not callable(checker):
+            return False
+        guard_seconds = float(
+            self._config.get("voice_interaction_config.tts_echo_guard_seconds", 2.5) or 2.5
+        )
+        return bool(checker(guard_seconds))
+
     def get_active_respond_language(self) -> str:
         override_locale = self._voice_locale_override()
         if override_locale == "en_US":

@@ -6,10 +6,15 @@ from PyQt5.QtWidgets import QApplication
 
 from baodou_ai.core.config import Config
 from baodou_ai.gui.floating.controller import FloatingController
+from baodou_ai.gui.floating.tts_controller import TTSController
 from baodou_ai.gui.floating.voice_controller import VoiceInteractionController
 from baodou_ai.gui.i18n import set_locale
 from baodou_ai.gui.runtime_log import RuntimeLogBuffer
-from baodou_ai.voice.echo_cancellation import EchoCancellationConfig, WebRtcEchoCanceller
+from baodou_ai.voice.echo_cancellation import (
+    EchoCancellationBridge,
+    EchoCancellationConfig,
+    WebRtcEchoCanceller,
+)
 from baodou_ai.voice.intent_classifier import VoiceIntentClassifier, VoiceIntentContext
 from baodou_ai.voice.local_vad import LocalVadConfig, LocalVadSegmenter
 from baodou_ai.voice.qwen_asr import QwenRealtimeAsrClient, QwenRealtimeAsrSettings
@@ -18,6 +23,11 @@ from baodou_ai.voice.wake_word_engine import WakeWordEngineStatus
 
 def _pcm(value: int, frames: int = 160) -> bytes:
     return np.full(frames, value, dtype=np.int16).tobytes()
+
+
+def _tone(frames: int = 1600, amplitude: int = 1200) -> bytes:
+    x = np.linspace(0, np.pi * 8, frames)
+    return np.rint(np.sin(x) * amplitude).astype(np.int16).tobytes()
 
 
 def test_local_vad_detects_start_end_and_preroll():
@@ -215,6 +225,24 @@ def test_webrtc_echo_canceller_feeds_reverse_and_capture_streams():
     assert processor.delays == [90]
 
 
+def test_echo_bridge_detects_recent_rendered_audio_as_residual_echo():
+    bridge = EchoCancellationBridge()
+    bridge.configure(
+        EchoCancellationConfig(
+            enabled=False,
+            sample_rate=16000,
+            frame_ms=10,
+        )
+    )
+    chunk = _tone(frames=1600)
+
+    bridge.add_rendered_audio(chunk, sample_rate=16000)
+
+    assert bridge.render_active(300)
+    assert bridge.looks_like_residual_echo(chunk, sample_rate=16000, threshold=0.78)
+    assert not bridge.looks_like_residual_echo(_pcm(0, frames=1600), sample_rate=16000, threshold=0.78)
+
+
 class _FakeEchoBridge:
     def __init__(self):
         self.configure_calls = []
@@ -260,6 +288,89 @@ def test_qwen_asr_processes_microphone_audio_through_echo_cancellation_first():
     assert bridge.configure_calls
     assert len(bridge.processed_chunks) == 2
     assert conversation.audio == []
+
+
+class _ResidualEchoBridge:
+    def __init__(self, *, drop=True):
+        self.drop = drop
+        self.processed_chunks = []
+        self.echo_checks = 0
+
+    def configure(self, config):
+        return SimpleNamespace(available=True)
+
+    def process_capture(self, chunk):
+        self.processed_chunks.append(chunk)
+        return chunk
+
+    def render_active(self, hangover_ms):
+        return True
+
+    def looks_like_residual_echo(self, chunk, sample_rate, threshold):
+        self.echo_checks += 1
+        return self.drop
+
+
+def test_qwen_asr_drops_residual_echo_before_vad():
+    conversation = _FakeConversation()
+    bridge = _ResidualEchoBridge(drop=True)
+    client = QwenRealtimeAsrClient(
+        QwenRealtimeAsrSettings(
+            api_key="test",
+            sample_rate=16000,
+            block_frames=160,
+            energy_threshold=500,
+            vad_min_speech_ms=10,
+            vad_end_silence_ms=20,
+            vad_pre_roll_ms=10,
+            residual_echo_gate_enabled=True,
+        ),
+        on_transcript=lambda text: None,
+        on_level=lambda rms, speaking: None,
+        on_state=lambda state, message: None,
+        on_error=lambda message: None,
+        conversation_factory=lambda settings, callback: conversation,
+        input_stream_factory=lambda callback: None,
+        echo_cancellation_bridge=bridge,
+    )
+    client._conversation = conversation
+
+    client._handle_chunk(_pcm(1000))
+    client._handle_chunk(_pcm(1000))
+
+    assert bridge.echo_checks == 2
+    assert conversation.audio == []
+
+
+def test_qwen_asr_keeps_chunks_after_user_speech_has_started():
+    conversation = _FakeConversation()
+    bridge = _ResidualEchoBridge(drop=True)
+    client = QwenRealtimeAsrClient(
+        QwenRealtimeAsrSettings(
+            api_key="test",
+            sample_rate=16000,
+            block_frames=160,
+            energy_threshold=500,
+            vad_min_speech_ms=10,
+            vad_end_silence_ms=20,
+            vad_pre_roll_ms=10,
+            residual_echo_gate_enabled=True,
+        ),
+        on_transcript=lambda text: None,
+        on_level=lambda rms, speaking: None,
+        on_state=lambda state, message: None,
+        on_error=lambda message: None,
+        conversation_factory=lambda settings, callback: conversation,
+        input_stream_factory=lambda callback: None,
+        echo_cancellation_bridge=bridge,
+    )
+    client._conversation = conversation
+    client._vad.in_speech = True
+
+    client._handle_chunk(_pcm(1000))
+
+    assert bridge.echo_checks == 0
+    assert conversation.audio
 
 
 class _FakeCompletion:
@@ -385,6 +496,8 @@ class _FakeFloatingController:
         self.exit_commands = 0
         self.dismiss_commands = 0
         self.waiting_tts = False
+        self.echo_guard = False
+        self.recent_tts = []
 
     def _task_active(self):
         return self._current_status_key in {"running", "stopping"}
@@ -407,6 +520,12 @@ class _FakeFloatingController:
 
     def current_tts_text(self):
         return self._tts.current_text
+
+    def recent_tts_texts(self, window_seconds):
+        return tuple(self.recent_tts)
+
+    def is_in_tts_echo_guard(self):
+        return self.echo_guard
 
     def submit_voice_task(self, text):
         self.handle_voice_submit(text)
@@ -689,6 +808,83 @@ def test_voice_controller_marks_tts_only_stage_as_final_response_phase(tmp_path)
     assert context.tts_playing is True
     assert context.tts_text == "我已经帮你完成了"
     assert context.interaction_phase == "final_response_tts"
+
+
+def test_voice_controller_ignores_transcript_matching_current_tts(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    controller = _FakeFloatingController()
+    controller.waiting_tts = True
+    controller._tts.current_text = "我已经帮你完成了这个任务"
+    voice = VoiceInteractionController(controller, config, RuntimeLogBuffer())
+
+    assert voice._should_ignore_tts_echo("我已经帮你完成了这个任务")
+
+
+def test_voice_controller_ignores_recent_tts_fragment(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    controller = _FakeFloatingController()
+    controller.recent_tts = ["第一句说明。打开浏览器已经完成。最后一句。"]
+    voice = VoiceInteractionController(controller, config, RuntimeLogBuffer())
+
+    assert voice._should_ignore_tts_echo("打开浏览器已经完成")
+
+
+def test_voice_controller_does_not_filter_explicit_interrupt_as_tts_echo(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    controller = _FakeFloatingController()
+    controller.waiting_tts = True
+    controller._tts.current_text = "如果想停止可以说停下"
+    voice = VoiceInteractionController(controller, config, RuntimeLogBuffer())
+
+    assert not voice._should_ignore_tts_echo("停下")
+
+
+def test_voice_controller_routes_guarded_idle_transcript_to_intent_classifier(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    controller = _FakeFloatingController()
+    controller.echo_guard = True
+    voice = VoiceInteractionController(controller, config, RuntimeLogBuffer())
+    voice._running = True
+    classified = []
+    voice._classify_async = lambda text: classified.append(text)
+
+    voice._handle_transcript("帮我打开浏览器")
+
+    assert controller.voice_submits == []
+    assert classified == ["帮我打开浏览器"]
+
+
+def test_tts_controller_keeps_recent_text_after_finish(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    assert app is not None
+    config = Config.create_isolated(str(tmp_path / "config.json"))
+    tts = TTSController(config, lambda: None)
+
+    class _Client:
+        available = True
+
+        def speak(self, text):
+            return SimpleNamespace(is_set=lambda: False)
+
+        def stop(self):
+            return None
+
+    tts.client = _Client()
+
+    tts.speak("我已经帮你完成了")
+    tts.finish_waiting()
+
+    assert tts.current_text == ""
+    assert tts.recent_texts(20) == ("我已经帮你完成了",)
+    assert tts.is_in_echo_guard(2.5)
 
 
 def test_wake_word_listening_prompt_uses_default_phrases(tmp_path):

@@ -8,6 +8,7 @@ the TTS and ASR implementations.
 from __future__ import annotations
 
 import threading
+import time
 from dataclasses import dataclass
 from typing import Callable, Optional
 
@@ -157,14 +158,20 @@ class EchoCancellationBridge:
         self._lock = threading.Lock()
         self._canceller: Optional[WebRtcEchoCanceller] = None
         self._config: Optional[EchoCancellationConfig] = None
+        self._render_reference = b""
+        self._render_sample_rate = 16000
+        self._last_render_at = 0.0
+        self._max_reference_seconds = 2.0
 
     def configure(self, config: EchoCancellationConfig) -> Optional[WebRtcEchoCanceller]:
         if not config.enabled:
             with self._lock:
                 self._canceller = None
                 self._config = config
+                self._set_render_sample_rate_locked(int(config.sample_rate or self._render_sample_rate))
             return None
         with self._lock:
+            self._set_render_sample_rate_locked(int(config.sample_rate or self._render_sample_rate))
             if self._config == config and self._canceller is not None:
                 return self._canceller
             canceller = WebRtcEchoCanceller(config)
@@ -177,9 +184,84 @@ class EchoCancellationBridge:
         return canceller.process_capture(chunk) if canceller is not None else chunk
 
     def add_rendered_audio(self, chunk: bytes, sample_rate: int) -> None:
+        self._remember_rendered_audio(chunk, sample_rate)
         canceller = self._canceller
         if canceller is not None:
             canceller.add_rendered_audio(chunk, sample_rate)
+
+    def render_active(self, hangover_ms: int) -> bool:
+        hangover_seconds = max(0.0, float(hangover_ms or 0) / 1000.0)
+        if hangover_seconds <= 0:
+            return False
+        return time.monotonic() - float(self._last_render_at or 0.0) <= hangover_seconds
+
+    def looks_like_residual_echo(
+        self,
+        capture_chunk: bytes,
+        sample_rate: int,
+        threshold: float,
+    ) -> bool:
+        if not capture_chunk:
+            return False
+        with self._lock:
+            reference = bytes(self._render_reference)
+            target_rate = int(self._render_sample_rate or sample_rate or 16000)
+        if not reference:
+            return False
+        capture = WebRtcEchoCanceller._resample_int16_mono(
+            bytes(capture_chunk), int(sample_rate or target_rate), target_rate
+        )
+        if not capture:
+            return False
+        capture_samples = np.frombuffer(capture, dtype=np.int16).astype(np.float32)
+        reference_samples = np.frombuffer(reference, dtype=np.int16).astype(np.float32)
+        if capture_samples.size < 8 or reference_samples.size < capture_samples.size:
+            return False
+        capture_energy = float(np.sqrt(np.mean(np.square(capture_samples))))
+        if capture_energy < 1.0:
+            return False
+        capture_centered = capture_samples - float(np.mean(capture_samples))
+        capture_norm = float(np.linalg.norm(capture_centered))
+        if capture_norm <= 1e-6:
+            return False
+        window_size = int(capture_samples.size)
+        step = max(1, min(window_size, window_size // 4 or 1))
+        best = 0.0
+        for start in range(0, reference_samples.size - window_size + 1, step):
+            window = reference_samples[start : start + window_size]
+            window_centered = window - float(np.mean(window))
+            window_norm = float(np.linalg.norm(window_centered))
+            if window_norm <= 1e-6:
+                continue
+            corr = abs(float(np.dot(capture_centered, window_centered) / (capture_norm * window_norm)))
+            if corr > best:
+                best = corr
+                if best >= float(threshold or 0.0):
+                    return True
+        return False
+
+    def _remember_rendered_audio(self, chunk: bytes, sample_rate: int) -> None:
+        if not chunk:
+            return
+        with self._lock:
+            target_rate = int(self._render_sample_rate or sample_rate or 16000)
+        converted = WebRtcEchoCanceller._resample_int16_mono(
+            bytes(chunk), int(sample_rate or target_rate), target_rate
+        )
+        if not converted:
+            return
+        max_bytes = max(1, int(target_rate * 2 * self._max_reference_seconds))
+        with self._lock:
+            self._render_sample_rate = target_rate
+            self._render_reference = (self._render_reference + converted)[-max_bytes:]
+            self._last_render_at = time.monotonic()
+
+    def _set_render_sample_rate_locked(self, sample_rate: int) -> None:
+        normalized = int(sample_rate or self._render_sample_rate or 16000)
+        if normalized != self._render_sample_rate:
+            self._render_reference = b""
+            self._last_render_at = 0.0
+        self._render_sample_rate = normalized
 
     @property
     def available(self) -> bool:

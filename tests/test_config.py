@@ -52,6 +52,9 @@ class TestConfig:
         assert DEFAULT_CONFIG["wake_word_config"]["cooldown_ms"] == 1500
         assert DEFAULT_CONFIG["wake_word_config"]["post_wake_timeout_seconds"] == 8
         assert DEFAULT_CONFIG["wake_word_config"]["show_indicator"] is True
+        assert DEFAULT_CONFIG["voice_interaction_config"]["tts_echo_guard_seconds"] == 2.5
+        assert DEFAULT_CONFIG["voice_interaction_config"]["tts_echo_history_seconds"] == 20
+        assert DEFAULT_CONFIG["voice_interaction_config"]["residual_echo_gate_enabled"] is True
         assert (
             DEFAULT_CONFIG["wake_word_config"]["model_dir"]
             == "models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20"

@@ -84,6 +84,9 @@ class QwenRealtimeAsrSettings:
     echo_cancellation_stream_delay_ms: int = 80
     echo_cancellation_ns: bool = True
     echo_cancellation_agc: bool = False
+    residual_echo_gate_enabled: bool = True
+    residual_echo_correlation_threshold: float = 0.78
+    residual_echo_reference_hangover_ms: int = 300
     adaptive_threshold_enabled: bool = True
     adaptive_min_energy_threshold: float = 300.0
     adaptive_noise_multiplier: float = 1.8
@@ -121,6 +124,13 @@ class QwenRealtimeAsrSettings:
             ),
             echo_cancellation_ns=bool(voice_config.get("echo_cancellation_ns", True)),
             echo_cancellation_agc=bool(voice_config.get("echo_cancellation_agc", False)),
+            residual_echo_gate_enabled=bool(voice_config.get("residual_echo_gate_enabled", True)),
+            residual_echo_correlation_threshold=float(
+                voice_config.get("residual_echo_correlation_threshold", 0.78) or 0.78
+            ),
+            residual_echo_reference_hangover_ms=int(
+                voice_config.get("residual_echo_reference_hangover_ms", 300) or 300
+            ),
         )
 
     def to_vad_config(self) -> LocalVadConfig:
@@ -347,6 +357,8 @@ class QwenRealtimeAsrClient:
         chunk = self._echo_bridge.process_capture(chunk)
         if not chunk:
             return
+        if self._should_drop_residual_echo(chunk):
+            return
         for event in self._vad.process(chunk):
             if event.event_type == "level":
                 self.on_level(event.rms, self._vad.in_speech or event.voiced)
@@ -363,6 +375,28 @@ class QwenRealtimeAsrClient:
         for chunk in chunks:
             audio_b64 = base64.b64encode(chunk).decode("ascii")
             self._conversation.append_audio(audio_b64)
+
+    def _should_drop_residual_echo(self, chunk: bytes) -> bool:
+        if not self.settings.residual_echo_gate_enabled:
+            return False
+        if self._vad.in_speech:
+            return False
+        render_active = getattr(self._echo_bridge, "render_active", None)
+        looks_like_echo = getattr(self._echo_bridge, "looks_like_residual_echo", None)
+        if not callable(render_active) or not callable(looks_like_echo):
+            return False
+        try:
+            if not bool(render_active(self.settings.residual_echo_reference_hangover_ms)):
+                return False
+            return bool(
+                looks_like_echo(
+                    chunk,
+                    self.settings.sample_rate,
+                    self.settings.residual_echo_correlation_threshold,
+                )
+            )
+        except Exception:
+            return False
 
     def _close_conversation(self) -> None:
         conversation = self._conversation
